@@ -15,8 +15,6 @@ This project implements a simplified Spring Boot version of the LARP specificati
 This project requires Java 21. Set it explicitly before running Maven:
 
 ```bash
-export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
-export PATH="$JAVA_HOME/bin:$PATH"
 ./mvnw spring-boot:run
 ```
 
