@@ -1,74 +1,56 @@
-# Spring Boot Introduction - REST Service
+# LARP Microservices
 
+This project implements a simplified Spring Boot version of the LARP specification using a single application with logically separated microservice-style packages.
 
-This is a "getting started" project with the Spring Boot framework, in which we build a simple REST service.
+## Microservices included
 
-Note. To create an empty Spring Boot project (rather than clone this one), 
-you can visit [Spring Initializr](https://start.spring.io/) to download a Spring project template.
-First, choose **Maven** in *Project*, Choose **Java** in *Language*. 
-Then choose a version of Spring Boot, for example **4.1.0**.
-Choose **Jar** in *Packaging* and **Java 21**.
-In *Dependencies*, add **Web**, **JPA** and **H2**.
-Next, click "GENERATE", download and extract the zip file. Open the project folder in your IDE.
+- Database service: inventory storage and search
+- Database editor: validation and update workflow
+- Log viewer: audit trail recording and date-range queries
+- Shipping manager: queue tracking and dispatch updates
+- AI assistant: keyword-based stock lookup and explanation endpoint
 
+## Run the project
 
+From the project root, run:
 
-This sample project includes a simple library application.
-Understand each layer in the project repository.
-<div style="background-color:white; width:550px;">
-   <img src="./spring-boot-architecture2.png" alt="spring boot architecture"/>
-</div>
-(Image from https://dzone.com/articles/spring-boot-architecture-and-workflow)
-
-### Demonstration: Sample REST Requests
-After running the Spring application, interact with it by using REST requests. 
-The following are examples of requests in the Windows Command Prompt (_note. commands in PowerShell are different_)
-or MacOS/Linux Terminal.
-
-- Request 1. 
-
-In Windows CMD,
-```shell
-curl -X POST -H "Content-Type:application/json" -d "{\"name\":\"My Library\"}" http://localhost:8081/libraries
-```
-In MacOS/Linux,
 ```bash
-curl -X POST -H "Content-Type:application/json" -d '{"name":"My Library"}' http://localhost:8081/libraries
-```
-which returns
-```json
-{"id":1,"name":"My Library"}
+./mvnw spring-boot:run
 ```
 
-- Request 2.
-  In Windows CMD,
-```shell
-curl -X POST -H "Content-Type:application/json" -d "{\"location\":\"Main Street nr 5\"}" http://localhost:8081/addresses
-```
-In MacOS/Linux,
-```bash
-curl -X POST -H "Content-Type:application/json" -d '{"location":"Main Street nr 5"}' http://localhost:8081/addresses
-```
-which returns 
-```json
-{"id":1,"location":"Main Street nr 5","library":null}
-```
+Then open:
 
-- Request 3.
-```shell
-curl -i -X PUT http://localhost:8081/libraries/1/address/1
-```
-which returns
-```json
-{"id":1,"name":"My Library"}
-```
+- http://localhost:8081/ for the service status page
+- http://localhost:8081/health for the health endpoint
+- http://localhost:8081/h2-console for the in-memory database inspection page
 
-- Request 4.
-```shell
-curl -X GET http://localhost:8081/addresses/1
-```
-which returns
-```json
-{"id":1,"location":"Main Street nr 5","library":{"id":1,"name":"My Library"}}
-```
-_Note that the value of `"library"` has been updated from `null` to `{"id":1,"name":"My Library"}`._
+## Main endpoints
+
+### Database
+- `PUT /database` - add item
+- `GET /database/{filter}` - query item by item code or description
+- `GET /database/{filter}?start=2026-01-01&end=2026-12-31` - history by date range
+- `POST /database/{filter}` - update item
+- `DELETE /database/{filter}` - remove item
+
+### Editor
+- `PUT /editor` - add or update an inventory item
+- `GET /editor` - fetch all items
+- `DELETE /editor/{itemCode}` - delete item
+
+### Logs
+- `GET /log` - list log entries
+- `GET /log?start=...&end=...` - filter by date range
+
+### Shipping
+- `PUT /shipping` - create shipping request
+- `GET /shipping` - list requests
+
+### AI assistant
+- `PUT /ai` - search stock based on natural language input
+
+## Notes
+
+The app now exposes a root endpoint at `/` and a health endpoint at `/health` so the default localhost page does not return a Whitelabel 404 when the service is running.
+
+This implementation keeps the structure close to the provided logical architecture while using Spring Boot features that are available in the project, such as JPA repositories, REST controllers, and validation.
