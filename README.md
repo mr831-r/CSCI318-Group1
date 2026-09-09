@@ -38,7 +38,7 @@ This is configured in `application.properties`, and the console servlet is regis
 ## API endpoints and descriptions
 
 ### Root and health
-- `GET /` - service status page; returns application metadata and active endpoint list
+- `GET /` - redirects to the console
 - `GET /health` - health check endpoint returning service status
 - `GET /console` - browser-based console for AI, editor, and log interaction
 - `GET /h2-console` - H2 in-memory database console
