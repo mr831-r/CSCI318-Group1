@@ -1,1 +1,2 @@
-com/larp/LarpApplicationTests.class
+com/larp/editor/EditorServiceTest.class
+com/larp/ai/AiSearchServiceTest.class

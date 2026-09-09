@@ -1,1 +1,2 @@
-/home/micah/Desktop/Uni Slop/CSCI318-Group1/target/larp-microservices/src/test/java/com/larp/LarpApplicationTests.java
+/home/micah/Desktop/Uni Slop/CSCI318-Group1/src/test/java/com/larp/ai/AiSearchServiceTest.java
+/home/micah/Desktop/Uni Slop/CSCI318-Group1/src/test/java/com/larp/editor/EditorServiceTest.java

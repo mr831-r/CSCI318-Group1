@@ -44,7 +44,7 @@ Requirement 12. Continuously match available stock to outstanding shipping reque
 | Database | API Endpoints (implemented as CRUD) | Database Host Entity, Database Item Interface | Implementation of API endpoint functionality | Nil. Optional for integration with external databases such as PostgreSQL |
 | Database Editor | Command line user input | User Request Edit Object, Database Editor Host Entity | Verify user input is valid, send entry to database, send log entry | Nil. |
 | Log Viewer | Real-time streaming of logs to command line, take filter command from user, logging API endpoint to add to database | Log Filter Object, Log Service Entity, Log Item Object (Implementation of Database Item Interface) | Implement API endpoint and add log item to database. Verify user input and filter new real-time events accordingly to push to the presentation layer. | Nil. |
-| Shipping Manager | Command line user input | Shipping Item Object (Implementation of Database Item Interface) | *UNKNOWN* | Package Tracking external API |
+| Shipping Manager | Shipping arrival confirmation input | Shipping Item Object (Implementation of Database Item Interface) | Confirm shipment arrival, update item status to ARRIVED, log the event | Package Tracking external API |
 | AI Assistant | Command line user input | *UNKNOWN* | Coordinate external API calls, gather data from database microservice | OpenAI external API |
 
 # Interfaces
@@ -78,7 +78,7 @@ Note: A “>” symbol indicates that an object implements an interface
 | DatabaseLogService | L3 | Log Sent to Database | Display log on command prompt for user |
 | DatabaseLogService | L4 | Shipping Stock Arrived | Add log item to database |
 | DatabaseLogService | L5 | AI Search Query Made | Add log item to database |
-| ShippingService | S1 | Shipping API states item arrived | Mark item as ARRIVED in database |
+| ShippingService | S1 | Shipping API states item arrived | Confirm shipment received, mark item as ARRIVED in the database, and log the arrival |
 | AIService | A1 | AI Search Request | Search database using AI and return response to user |
 
 # API Endpoints
