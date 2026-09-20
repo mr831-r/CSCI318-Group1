@@ -1,2 +1,2 @@
-com/larp/editor/EditorServiceTest.class
-com/larp/ai/AiSearchServiceTest.class
+com\larp\ai\AiSearchServiceTest.class
+com\larp\editor\EditorServiceTest.class

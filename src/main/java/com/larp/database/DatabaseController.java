@@ -11,15 +11,15 @@ import java.util.List;
 @RequestMapping("/database")
 public class DatabaseController {
 
-    private final InventoryItemRepository inventoryItemRepository;
+    private final DatabaseService databaseService;
 
-    public DatabaseController(InventoryItemRepository inventoryItemRepository) {
-        this.inventoryItemRepository = inventoryItemRepository;
+    public DatabaseController(DatabaseService databaseService) {
+        this.databaseService = databaseService;
     }
 
     @PutMapping
     public ResponseEntity<InventoryItem> createItem(@RequestBody InventoryItem item) {
-        InventoryItem saved = inventoryItemRepository.save(item);
+        InventoryItem saved = databaseService.createItem(item);
         return ResponseEntity.ok(saved);
     }
 
@@ -29,41 +29,22 @@ public class DatabaseController {
             @RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
 
-        if (start != null && end != null) {
-            List<InventoryItem> history = inventoryItemRepository.findByItemCodeBetweenDates(filter, start, end);
-            if (!history.isEmpty()) {
-                return ResponseEntity.ok(history);
-            }
-        }
-
-        return ResponseEntity.ok(inventoryItemRepository.findByItemCode(filter));
+        return ResponseEntity.ok(databaseService.findItems(filter, start, end));
     }
 
     @PostMapping("/{filter}")
     public ResponseEntity<InventoryItem> updateItem(@PathVariable String filter, @RequestBody InventoryItem incoming) {
-        List<InventoryItem> existingItems = inventoryItemRepository.findByItemCode(filter);
-        if (existingItems.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        InventoryItem existing = existingItems.get(existingItems.size() - 1);
-        existing.setDescription(incoming.getDescription() != null ? incoming.getDescription() : existing.getDescription());
-        existing.setQuantity(incoming.getQuantity() != null ? incoming.getQuantity() : existing.getQuantity());
-        existing.setStatus(incoming.getStatus() != null ? incoming.getStatus() : existing.getStatus());
-        existing.setDate(incoming.getDate() != null ? incoming.getDate() : existing.getDate());
-        existing.setPayslipReference(incoming.getPayslipReference() != null ? incoming.getPayslipReference() : existing.getPayslipReference());
-
-        return ResponseEntity.ok(inventoryItemRepository.save(existing));
+        return databaseService.updateLatestItem(filter, incoming)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{filter}")
     public ResponseEntity<Void> deleteItem(@PathVariable String filter) {
-        List<InventoryItem> items = inventoryItemRepository.findByItemCode(filter);
-        if (items.isEmpty()) {
+        if (!databaseService.deleteLatestItem(filter)) {
             return ResponseEntity.notFound().build();
         }
 
-        inventoryItemRepository.delete(items.get(items.size() - 1));
         return ResponseEntity.noContent().build();
     }
 }
