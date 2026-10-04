@@ -36,6 +36,9 @@ public class EditorService {
         if (item.getItemCode() == null || item.getItemCode().trim().isEmpty()) {
             throw new IllegalArgumentException("itemCode is required");
         }
+        if (item.getName() == null || item.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("name is required");
+        }
         if (item.getDescription() == null || item.getDescription().trim().isEmpty()) {
             throw new IllegalArgumentException("description is required");
         }
@@ -132,7 +135,8 @@ public class EditorService {
         for (String[] row : seedData) {
             InventoryItem item = new InventoryItem();
             item.setItemCode(row[0]);
-            item.setDescription(row[1]);
+            item.setName(row[1]);
+            item.setDescription("Imported: " + row[1]);
             item.setQuantity(Integer.parseInt(row[2]));
             item.setStatus(row[3]);
             item.setDate(LocalDate.parse(row[4]));

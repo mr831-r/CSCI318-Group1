@@ -1,13 +1,13 @@
 package com.larp.shipping;
 
-import com.larp.database.DatabaseItem;
+import com.larp.database.IDatabaseItem;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "shipping_requests")
-public class ShippingRequest implements DatabaseItem {
+public class ShippingRequest implements IDatabaseItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

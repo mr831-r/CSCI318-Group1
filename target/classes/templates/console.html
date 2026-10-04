@@ -219,8 +219,12 @@
                 <input id="editorItemCode" type="text" value="ITEM-3001" />
             </label>
             <label>
+                Name
+                <input id="editorName" type="text" value="Steel spear" />
+            </label>
+            <label>
                 Description
-                <input id="editorDescription" type="text" value="Steel spear" />
+                <input id="editorDescription" type="text" value="Steel spear details" />
             </label>
             <label>
                 Quantity
@@ -239,7 +243,7 @@
                 <button class="secondary" onclick="getEditorItems()">List items</button>
             </div>
             <div class="inline-actions">
-                <button class="warn" onclick="seedEditorItems()">Load demo data</button>
+                <button class="warn" onclick="prepopulateEditor()">Load demo data</button>
             </div>
             <div class="result" id="editorResult">No editor action yet.</div>
         </section>
@@ -326,6 +330,7 @@
     async function saveEditorItem() {
         const payload = {
             itemCode: document.getElementById('editorItemCode').value,
+            name: document.getElementById('editorName').value,
             description: document.getElementById('editorDescription').value,
             quantity: Number(document.getElementById('editorQuantity').value),
             status: document.getElementById('editorStatus').value,
@@ -350,7 +355,7 @@
     }
 
     async function seedEditorItems() {
-        const res = await fetch(`${baseUrl}/editor/seed`, { method: 'POST' });
+        const res = await fetch(`${baseUrl}/editor/seed`, { method: 'PUT' });
         const data = await res.json();
         document.getElementById('editorResult').textContent = JSON.stringify(data, null, 2);
     }
@@ -407,6 +412,29 @@
         const res = await fetch(url);
         const data = await res.json();
         document.getElementById('logResult').textContent = JSON.stringify(data, null, 2);
+    }
+
+    // Start Server-Sent Events connection to receive real-time log updates
+    try {
+        const es = new EventSource(`${baseUrl}/log/stream`);
+        es.addEventListener('log', (e) => {
+            try {
+                const entry = JSON.parse(e.data);
+                const el = document.getElementById('logResult');
+                const now = new Date(entry.timestamp).toLocaleString();
+                const line = `[${now}] ${entry.level}: ${entry.message}`;
+                // prepend
+                el.textContent = line + "\n" + el.textContent;
+            } catch (err) {
+                console.warn('Failed to parse SSE log event', err);
+            }
+        });
+        es.onerror = (err) => {
+            console.warn('SSE connection error', err);
+            // the browser will attempt to reconnect automatically
+        };
+    } catch (err) {
+        console.warn('SSE not supported by this browser', err);
     }
 
     loadLogs();

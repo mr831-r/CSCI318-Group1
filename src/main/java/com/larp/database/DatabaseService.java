@@ -88,7 +88,7 @@ public class DatabaseService {
     }
 
     public List<InventoryItem> findByDescriptionContainingIgnoreCase(String description) {
-        TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE LOWER(i.description) LIKE LOWER(CONCAT('%', :desc, '%'))", InventoryItem.class);
+        TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE LOWER(i.description) LIKE LOWER(CONCAT('%', :desc, '%')) OR LOWER(i.name) LIKE LOWER(CONCAT('%', :desc, '%'))", InventoryItem.class);
         q.setParameter("desc", description);
         return q.getResultList();
     }
@@ -159,6 +159,17 @@ public class DatabaseService {
      */
     @PutMapping
     public InventoryItem createItemEndpoint(@RequestBody InventoryItem item) {
+        return createItem(item);
+    }
+
+    @PutMapping("/{filter}")
+    public InventoryItem createItemWithFilterEndpoint(@PathVariable String filter, @RequestBody InventoryItem item) {
+        if (item == null) {
+            item = new InventoryItem();
+        }
+        if (item.getItemCode() == null || item.getItemCode().isBlank()) {
+            item.setItemCode(filter);
+        }
         return createItem(item);
     }
 

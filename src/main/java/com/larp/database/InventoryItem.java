@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "inventory_items")
-public class InventoryItem implements DatabaseItem {
+public class InventoryItem implements com.larp.database.IDatabaseItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -14,6 +14,9 @@ public class InventoryItem implements DatabaseItem {
 
     @Column(nullable = false)
     private String itemCode;
+
+    @Column(nullable = false)
+    private String name;
 
     @Column(nullable = false)
     private String description;
@@ -53,6 +56,14 @@ public class InventoryItem implements DatabaseItem {
 
     public void setItemCode(String itemCode) {
         this.itemCode = itemCode;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getDescription() {

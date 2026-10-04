@@ -34,9 +34,11 @@ public class AiSearchService {
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     private final DatabaseService databaseService;
+    private final com.larp.logviewer.LogService logService;
 
-    public AiSearchService(DatabaseService databaseService) {
+    public AiSearchService(DatabaseService databaseService, com.larp.logviewer.LogService logService) {
         this.databaseService = databaseService;
+        this.logService = logService;
     }
 
     public List<InventoryItem> search(String query, LocalDate startDate, LocalDate endDate) {
@@ -53,24 +55,24 @@ public class AiSearchService {
 
     /* Controller endpoints moved from AiController into this service class */
     @GetMapping
-    public java.util.Map<String, Object> getAllAvailableItems() {
+    public AIResponse getAllAvailableItems() {
         List<InventoryItem> items = search("", null, null);
         return buildResponse("all inventory", items, null, null, null, null, null);
     }
 
     @PutMapping
-    public java.util.Map<String, Object> searchAi(@RequestBody java.util.Map<String, String> payload) {
-        return askAi(payload);
+    public AIResponse searchAi(@RequestBody AIRequest req) {
+        return askAi(req);
     }
 
     @PostMapping
-    public java.util.Map<String, Object> askAi(@RequestBody java.util.Map<String, String> payload) {
-        String query = Optional.ofNullable(payload.get("query")).orElse("").trim();
-        LocalDate startDate = parseDate(payload.get("startDate"));
-        LocalDate endDate = parseDate(payload.get("endDate"));
-        String apiKey = Optional.ofNullable(payload.get("apiKey")).filter(value -> !value.isBlank()).orElse(null);
-        String model = Optional.ofNullable(payload.get("model")).filter(value -> !value.isBlank()).orElse(null);
-        String providerUrl = Optional.ofNullable(payload.get("providerUrl")).filter(value -> !value.isBlank()).orElse(null);
+    public AIResponse askAi(@RequestBody AIRequest req) {
+        String query = Optional.ofNullable(req.getQuery()).orElse("").trim();
+        LocalDate startDate = parseDate(req.getStartDate());
+        LocalDate endDate = parseDate(req.getEndDate());
+        String apiKey = Optional.ofNullable(req.getApiKey()).filter(value -> !value.isBlank()).orElse(null);
+        String model = Optional.ofNullable(req.getModel()).filter(value -> !value.isBlank()).orElse(null);
+        String providerUrl = Optional.ofNullable(req.getProviderUrl()).filter(value -> !value.isBlank()).orElse(null);
 
         List<InventoryItem> matches = search(query, startDate, endDate, apiKey, model, providerUrl);
 
@@ -79,13 +81,14 @@ public class AiSearchService {
             java.util.Map<String, String> logPayload = new java.util.LinkedHashMap<>();
             logPayload.put("query", query);
             logPayload.put("count", String.valueOf(matches.size()));
-            // Autowire LogService at top-level if needed; using application context wasn't requested so avoid extra coupling here.
+            logService.addAiLog(logPayload);
         } catch (Exception ignored) {
             // ensure search still returns even if logging fails
         }
 
         return buildResponse(query, matches, startDate, endDate, apiKey, model, providerUrl);
     }
+
     public String summarize(String query, LocalDate startDate, LocalDate endDate, int totalMatches) {
         StringBuilder summary = new StringBuilder();
         summary.append("AI agent reviewed ");
@@ -116,9 +119,8 @@ public class AiSearchService {
         List<ScoredItem> scored = new ArrayList<>();
         for (InventoryItem item : candidates) {
             int score = scoreItem(item, normalizedQuery);
-            if (score > 0) {
-                scored.add(new ScoredItem(item, score));
-            }
+            // Include all items in scoring stage (don't filter out zero-score items early)
+            scored.add(new ScoredItem(item, score));
         }
 
         return scored.stream()
@@ -197,12 +199,16 @@ public class AiSearchService {
 
     private int scoreItem(InventoryItem item, String query) {
         int score = 0;
+        String name = Optional.ofNullable(item.getName()).orElse("").toLowerCase(Locale.ROOT);
         String description = Optional.ofNullable(item.getDescription()).orElse("").toLowerCase(Locale.ROOT);
         String itemCode = Optional.ofNullable(item.getItemCode()).orElse("").toLowerCase(Locale.ROOT);
         String status = Optional.ofNullable(item.getStatus()).orElse("").toLowerCase(Locale.ROOT);
 
+        if (name.contains(query)) {
+            score += 7;
+        }
         if (description.contains(query)) {
-            score += 5;
+            score += 4;
         }
         if (itemCode.contains(query)) {
             score += 6;
@@ -216,6 +222,9 @@ public class AiSearchService {
             String cleanTerm = term.trim();
             if (cleanTerm.isBlank()) {
                 continue;
+            }
+            if (name.contains(cleanTerm)) {
+                score += 3;
             }
             if (description.contains(cleanTerm)) {
                 score += 2;
@@ -243,6 +252,8 @@ public class AiSearchService {
             }
             context.append(item.getItemCode())
                     .append(" | ")
+                    .append(item.getName())
+                    .append(" - ")
                     .append(item.getDescription())
                     .append(" | qty=")
                     .append(item.getQuantity())
@@ -295,6 +306,39 @@ public class AiSearchService {
                 .replace("\r", "\\r")
                 .replace("\t", "\\t")
                 .replace("\"", "\\\"");
+    }
+
+    private AIResponse buildResponse(
+            String query,
+            List<InventoryItem> items,
+            LocalDate startDate,
+            LocalDate endDate,
+            String apiKey,
+            String model,
+            String providerUrl) {
+        AIResponse response = new AIResponse();
+        response.setQuery(query);
+        response.setStartDate(startDate);
+        response.setEndDate(endDate);
+        response.setCount(items.size());
+        response.setSummary(summarize(query, startDate, endDate, items.size()));
+        response.setResults(items);
+        boolean llmConfigured = apiKey != null || System.getenv("AI_API_KEY") != null || System.getenv("OPENAI_API_KEY") != null || System.getenv("GEMINI_API_KEY") != null;
+        response.setLlmConfigured(llmConfigured);
+        response.setModel(model != null ? model : System.getenv().getOrDefault("AI_MODEL", defaultModel()));
+        response.setProviderUrl(providerUrl != null ? providerUrl : System.getenv().getOrDefault("AI_PROVIDER_URL", defaultProviderUrl()));
+        return response;
+    }
+
+    private LocalDate parseDate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value);
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private record ScoredItem(InventoryItem item, int score) {

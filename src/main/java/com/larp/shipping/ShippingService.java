@@ -5,11 +5,18 @@ import com.larp.database.InventoryItem;
 import com.larp.logviewer.LogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RestController
+@RequestMapping("/shipping")
 public class ShippingService {
 
     private final DatabaseService databaseService;
@@ -46,5 +53,16 @@ public class ShippingService {
 
     public List<ShippingRequest> getShippingRequests() {
         return databaseService.getShippingRequests();
+    }
+
+    /* Controller endpoints moved from ShippingController into this service class */
+    @PutMapping
+    public ShippingRequest confirmArrivalEndpoint(@RequestBody ShippingRequest request) {
+        return confirmArrival(request).orElse(null);
+    }
+
+    @GetMapping
+    public List<ShippingRequest> getShippingRequestsEndpoint() {
+        return getShippingRequests();
     }
 }

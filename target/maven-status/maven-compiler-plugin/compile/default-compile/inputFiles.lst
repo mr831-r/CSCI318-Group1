@@ -1,21 +1,16 @@
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\ai\AiController.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\ai\AiSearchService.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\ConsolePageController.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\database\DatabaseController.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\database\DatabaseItem.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\database\DatabaseService.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\database\InventoryItem.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\database\InventoryItemRepository.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\editor\EditorController.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\editor\EditorService.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\H2ConsoleConfig.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\HealthController.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\LarpApplication.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\logviewer\LogEntry.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\logviewer\LogEntryRepository.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\logviewer\LogService.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\logviewer\LogViewerController.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\shipping\ShippingController.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\shipping\ShippingRequest.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\shipping\ShippingRequestRepository.java
-C:\Users\Bowie\OneDrive\Desktop\Uni Resources\CSCI318 - Java\CSCI318-Group1\src\main\java\com\larp\shipping\ShippingService.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/ConsolePageController.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/H2ConsoleConfig.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/HealthController.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/LarpApplication.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/ai/AIRequest.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/ai/AIResponse.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/ai/AiSearchService.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/database/DatabaseService.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/database/IDatabaseItem.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/database/InventoryItem.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/editor/EditorService.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/logviewer/LogEntry.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/logviewer/LogService.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/shipping/ShippingRequest.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/shipping/ShippingRequestRepository.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/main/java/com/larp/shipping/ShippingService.java

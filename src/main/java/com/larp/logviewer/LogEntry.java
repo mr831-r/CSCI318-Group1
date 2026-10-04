@@ -1,13 +1,13 @@
 package com.larp.logviewer;
 
-import com.larp.database.DatabaseItem;
+import com.larp.database.IDatabaseItem;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "log_entries")
-public class LogEntry implements DatabaseItem {
+public class LogEntry implements IDatabaseItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
