@@ -56,7 +56,7 @@ This is configured in `application.properties`, and the console servlet is regis
   - Validates required fields: item code, description, quantity, status, and date
 - `PUT /editor/prepopulate` - bulk insert inventory records; if empty body is sent, it seeds realistic sample data automatically
 - `GET /editor` - fetch all current inventory items
-- `POST /editor/seed` - create a small set of fake inventory items for demos and testing
+- `POST /editor/prepopulate` - create a small set of fake inventory items for demos and testing
 - `DELETE /editor` - delete an item using a JSON body such as `{ "itemCode": "ITEM-1001" }`
 - `DELETE /editor/{itemCode}` - delete an item by its item code path value
 
@@ -83,18 +83,6 @@ This is configured in `application.properties`, and the console servlet is regis
 - `PUT /ai` - perform an AI-style database search using a natural language request body and optional date bounds
   - Request body example: `{ "query": "sword", "startDate": "2026-09-01", "endDate": "2026-09-10" }`
 - `POST /ai` - same as above, used for search-style interaction with the AI endpoint
-
-## Database design note
-
-The specification in `ai/context.md` describes an abstract `IDatabaseItem` contract for database segregation and filtering. In a production-grade multi-service design, that would typically be implemented as a common interface or shared domain model across service-specific entities.
-
-This project keeps a simplified single-application architecture, so the same concept is represented as a shared `DatabaseItem` interface implemented by the main persisted types used across the app:
-
-- `InventoryItem` implements `DatabaseItem` and exposes the logistics filter name
-- `LogEntry` implements `DatabaseItem` and exposes the log filter name
-- `ShippingRequest` implements `DatabaseItem` and exposes the shipping filter name
-
-This preserves the specification’s intent of common filtering and segregation semantics without forcing a full multiple-table inheritance hierarchy into a compact Spring Boot service that uses JPA repositories directly.
 
 ## Workflow overview
 
