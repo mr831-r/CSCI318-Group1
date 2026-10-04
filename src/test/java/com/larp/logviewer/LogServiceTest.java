@@ -1,5 +1,6 @@
 package com.larp.logviewer;
 
+import com.larp.database.DatabaseService;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -13,9 +14,9 @@ class LogServiceTest {
 
     @Test
     void addLogEntryBuildsAndSavesLogEntryFromPayload() {
-        LogEntryRepository repository = mock(LogEntryRepository.class);
-        when(repository.save(any(LogEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        LogService service = new LogService(repository);
+        DatabaseService databaseService = mock(DatabaseService.class);
+        when(databaseService.saveLogEntry(any(LogEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        LogService service = new LogService(databaseService);
 
         LogEntry result = service.addLogEntry(Map.of("message", "Import complete", "level", "INFO"));
 

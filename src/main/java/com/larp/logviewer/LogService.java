@@ -1,5 +1,6 @@
 package com.larp.logviewer;
 
+import com.larp.database.DatabaseService;
 import com.larp.database.InventoryItem;
 import org.springframework.stereotype.Service;
 
@@ -9,20 +10,18 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RestController
+@RequestMapping("/log")
 public class LogService {
 
-    private final LogEntryRepository logEntryRepository;
+    private final DatabaseService databaseService;
 
-    public LogService(LogEntryRepository logEntryRepository) {
-        this.logEntryRepository = logEntryRepository;
+    public LogService(DatabaseService databaseService) {
+        this.databaseService = databaseService;
     }
 
     public List<LogEntry> findLogs(LocalDate start, LocalDate end) {
-        if (start != null && end != null) {
-            return logEntryRepository.findByTimestampBetween(start.atStartOfDay(), end.atTime(23, 59, 59));
-        }
-
-        return logEntryRepository.findAll();
+        return databaseService.findLogs(start, end);
     }
 
     public LogEntry addItemLog(InventoryItem item) {
@@ -54,6 +53,47 @@ public class LogService {
         logEntry.setMessage(message);
         logEntry.setLevel(level);
         logEntry.setTimestamp(LocalDateTime.now());
-        return logEntryRepository.save(logEntry);
+
+        // Display the log on the command prompt for the user (per L3)
+        try {
+            System.out.println("[" + logEntry.getTimestamp() + "] " + level + ": " + message);
+        } catch (Exception ignore) {
+            // If printing fails for any reason, continue to persist the log
+        }
+
+        return databaseService.saveLogEntry(logEntry);
+    }
+
+    /* Controller endpoints moved from LogViewerController into this service class */
+
+    @GetMapping
+    public List<LogEntry> getLogs(@RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+                                   @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        return findLogs(start, end);
+    }
+
+    @PutMapping("/item")
+    public LogEntry addItemLogEndpoint(@RequestBody InventoryItem item) {
+        return addItemLog(item);
+    }
+
+    @DeleteMapping("/item")
+    public LogEntry removeItemLogEndpoint(@RequestBody InventoryItem item) {
+        return removeItemLog(item);
+    }
+
+    @PutMapping
+    public LogEntry addLogEntryEndpoint(@RequestBody Map<String, String> payload) {
+        return addLogEntry(payload);
+    }
+
+    @PutMapping("/shipping")
+    public LogEntry addShippingLogEndpoint(@RequestBody Map<String, String> payload) {
+        return addShippingLog(payload);
+    }
+
+    @PutMapping("/ai")
+    public LogEntry addAiLogEndpoint(@RequestBody Map<String, String> payload) {
+        return addAiLog(payload);
     }
 }

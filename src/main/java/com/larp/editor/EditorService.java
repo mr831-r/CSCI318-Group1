@@ -1,25 +1,32 @@
 package com.larp.editor;
 
+import com.larp.database.DatabaseService;
 import com.larp.database.InventoryItem;
-import com.larp.database.InventoryItemRepository;
-import com.larp.logviewer.LogEntry;
-import com.larp.logviewer.LogEntryRepository;
+import com.larp.logviewer.LogService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RestController
+@RequestMapping("/editor")
 public class EditorService {
 
-    private final InventoryItemRepository inventoryItemRepository;
-    private final LogEntryRepository logEntryRepository;
+    private final DatabaseService databaseService;
+    private final LogService logService;
 
-    public EditorService(InventoryItemRepository inventoryItemRepository, LogEntryRepository logEntryRepository) {
-        this.inventoryItemRepository = inventoryItemRepository;
-        this.logEntryRepository = logEntryRepository;
+    public EditorService(DatabaseService databaseService, LogService logService) {
+        this.databaseService = databaseService;
+        this.logService = logService;
     }
 
     public InventoryItem validateAndSave(InventoryItem item) {
@@ -42,18 +49,58 @@ public class EditorService {
             throw new IllegalArgumentException("date is required");
         }
 
-        InventoryItem saved = inventoryItemRepository.save(item);
+        InventoryItem saved = databaseService.createItem(item);
 
-        LogEntry logEntry = new LogEntry();
-        logEntry.setMessage("Inventory item saved: " + item.getItemCode());
-        logEntry.setTimestamp(LocalDateTime.now());
-        logEntry.setLevel("INFO");
-        logEntryRepository.save(logEntry);
+        // Broadcast/log the addition through the centralized LogService
+        logService.addItemLog(saved);
         return saved;
     }
 
     public List<InventoryItem> getAllItems() {
-        return inventoryItemRepository.findAll();
+        return databaseService.findAllItems();
+    }
+
+    /* Controller endpoints moved from EditorController into this service class */
+
+    @PutMapping
+    public InventoryItem addOrUpdateItem(@RequestBody InventoryItem item) {
+        return validateAndSave(item);
+    }
+
+    @PutMapping("/prepopulate")
+    public List<InventoryItem> prepopulateInventory(@RequestBody(required = false) List<InventoryItem> items) {
+        if (items == null || items.isEmpty()) {
+            return seedSampleInventory();
+        }
+
+        for (InventoryItem item : items) {
+            validateAndSave(item);
+        }
+        return getAllItems();
+    }
+
+    @GetMapping
+    public List<InventoryItem> getAllItemsEndpoint() {
+        return getAllItems();
+    }
+
+    @PutMapping("/seed")
+    public List<InventoryItem> seedSampleInventoryEndpoint() {
+        return seedSampleInventory();
+    }
+
+    @DeleteMapping
+    public void deleteItemByBody(@RequestBody java.util.Map<String, String> payload) {
+        String itemCode = payload.getOrDefault("itemCode", payload.get("filter"));
+        if (itemCode == null || itemCode.isBlank()) {
+            return;
+        }
+        deleteItem(itemCode);
+    }
+
+    @DeleteMapping("/{itemCode}")
+    public void deleteItemEndpoint(@PathVariable String itemCode) {
+        deleteItem(itemCode);
     }
 
     public List<InventoryItem> seedSampleInventory() {
@@ -102,9 +149,12 @@ public class EditorService {
     }
 
     public void deleteItem(String itemCode) {
-        List<InventoryItem> matches = inventoryItemRepository.findByItemCode(itemCode);
+        List<InventoryItem> matches = databaseService.findItems(itemCode, null, null);
         if (!matches.isEmpty()) {
-            inventoryItemRepository.delete(matches.get(matches.size() - 1));
+            InventoryItem toDelete = matches.get(matches.size() - 1);
+            databaseService.deleteLatestItem(itemCode);
+            // Broadcast/log the removal through the centralized LogService
+            logService.removeItemLog(toDelete);
         }
     }
 }

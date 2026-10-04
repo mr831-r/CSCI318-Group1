@@ -1,7 +1,7 @@
 package com.larp.shipping;
 
+import com.larp.database.DatabaseService;
 import com.larp.database.InventoryItem;
-import com.larp.database.InventoryItemRepository;
 import com.larp.logviewer.LogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,15 +12,11 @@ import java.util.Optional;
 @Service
 public class ShippingService {
 
-    private final ShippingRequestRepository shippingRequestRepository;
-    private final InventoryItemRepository inventoryItemRepository;
+    private final DatabaseService databaseService;
     private final LogService logService;
 
-    public ShippingService(ShippingRequestRepository shippingRequestRepository,
-                           InventoryItemRepository inventoryItemRepository,
-                           LogService logService) {
-        this.shippingRequestRepository = shippingRequestRepository;
-        this.inventoryItemRepository = inventoryItemRepository;
+    public ShippingService(DatabaseService databaseService, LogService logService) {
+        this.databaseService = databaseService;
         this.logService = logService;
     }
 
@@ -30,25 +26,25 @@ public class ShippingService {
             return Optional.empty();
         }
 
-        List<InventoryItem> matchingItems = inventoryItemRepository.findByItemCode(request.getItemCode());
+        List<InventoryItem> matchingItems = databaseService.findItems(request.getItemCode(), null, null);
         if (!matchingItems.isEmpty()) {
-            InventoryItem latestItem = matchingItems.get(matchingItems.size() - 1);
-            latestItem.setStatus("ARRIVED");
+            InventoryItem incoming = new InventoryItem();
+            incoming.setStatus("ARRIVED");
             if (request.getQuantity() != null) {
-                latestItem.setQuantity(request.getQuantity());
+                incoming.setQuantity(request.getQuantity());
             }
             if (request.getRequestedDate() != null) {
-                latestItem.setDate(request.getRequestedDate());
+                incoming.setDate(request.getRequestedDate());
             }
-            inventoryItemRepository.save(latestItem);
+            databaseService.updateLatestItem(request.getItemCode(), incoming);
         }
 
-        ShippingRequest saved = shippingRequestRepository.save(request);
+        ShippingRequest saved = databaseService.saveShippingRequest(request);
         logService.recordShippingConfirmation(request.getItemCode());
         return Optional.of(saved);
     }
 
     public List<ShippingRequest> getShippingRequests() {
-        return shippingRequestRepository.findAll();
+        return databaseService.getShippingRequests();
     }
 }

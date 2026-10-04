@@ -18,9 +18,11 @@ import java.util.Optional;
 public class AiController {
 
     private final AiSearchService aiSearchService;
+    private final com.larp.logviewer.LogService logService;
 
-    public AiController(AiSearchService aiSearchService) {
+    public AiController(AiSearchService aiSearchService, com.larp.logviewer.LogService logService) {
         this.aiSearchService = aiSearchService;
+        this.logService = logService;
     }
 
     @GetMapping("/ai")
@@ -44,6 +46,17 @@ public class AiController {
         String providerUrl = Optional.ofNullable(payload.get("providerUrl")).filter(value -> !value.isBlank()).orElse(null);
 
         List<InventoryItem> matches = aiSearchService.search(query, startDate, endDate, apiKey, model, providerUrl);
+
+        // Record AI search query in logs (L5)
+        try {
+            java.util.Map<String, String> logPayload = new java.util.LinkedHashMap<>();
+            logPayload.put("query", query);
+            logPayload.put("count", String.valueOf(matches.size()));
+            logService.addAiLog(logPayload);
+        } catch (Exception ignored) {
+            // ensure search still returns even if logging fails
+        }
+
         return buildResponse(query, matches, startDate, endDate, apiKey, model, providerUrl);
     }
 
