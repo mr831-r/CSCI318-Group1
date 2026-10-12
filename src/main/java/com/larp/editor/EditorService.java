@@ -87,11 +87,6 @@ public class EditorService {
         return getAllItems();
     }
 
-    @PutMapping("/seed")
-    public List<InventoryItem> seedSampleInventoryEndpoint() {
-        return seedSampleInventory();
-    }
-
     @DeleteMapping
     public void deleteItemByBody(@RequestBody java.util.Map<String, String> payload) {
         String itemCode = payload.getOrDefault("itemCode", payload.get("filter"));
