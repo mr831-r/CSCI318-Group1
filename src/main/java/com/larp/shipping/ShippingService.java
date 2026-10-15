@@ -1,7 +1,7 @@
 package com.larp.shipping;
 
 import com.larp.database.DatabaseService;
-import com.larp.database.IInventoryItem;
+import com.larp.database.InventoryItem;
 import com.larp.database.InventoryItem;
 import com.larp.events.StockEvent;
 import com.larp.logviewer.LogService;
@@ -45,14 +45,14 @@ public class ShippingService {
     }
 
     @Transactional
-    public Optional<IShippingRequest> confirmArrival(IShippingRequest request) {
+    public Optional<ShippingRequest> confirmArrival(ShippingRequest request) {
         if (request == null || request.getItemCode() == null || request.getItemCode().isBlank()) {
             return Optional.empty();
         }
 
-        List<IInventoryItem> matchingItems = databaseService.findItems(request.getItemCode(), null, null);
+        List<InventoryItem> matchingItems = databaseService.findItems(request.getItemCode(), null, null); // TODO: Should be using generic IDatabaseItem implementations from database service.
         if (!matchingItems.isEmpty()) {
-            IInventoryItem incoming = new InventoryItem();
+            InventoryItem incoming = new InventoryItem();
             incoming.setStatus("ARRIVED");
             if (request.getQuantity() != null) {
                 incoming.setQuantity(request.getQuantity());
@@ -60,10 +60,10 @@ public class ShippingService {
             if (request.getRequestedDate() != null) {
                 incoming.setDate(request.getRequestedDate());
             }
-            databaseService.updateLatestItem(request.getItemCode(), incoming);
+            databaseService.updateLatestItem(request.getItemCode(), incoming); // TODO: Should not be using a custom function from database service. All functions like this must be made in this entity or Should be using generic IDatabaseItem implementations from database service.
         }
 
-        IShippingRequest saved = databaseService.createItem(request);
+        ShippingRequest saved = databaseService.createItem(request);
         logService.recordShippingConfirmation(request.getItemCode());
         int quantityDelta = request.getQuantity() == null ? 0 : request.getQuantity();
         StockEvent event = new StockEvent(
@@ -82,9 +82,9 @@ public class ShippingService {
         return Optional.of(saved);
     }
 
-    public List<IShippingRequest> getShippingRequests() {
+    public List<ShippingRequest> getShippingRequests() {
         return databaseService.findAllItems(ShippingRequest.class).stream()
-                .map(IShippingRequest.class::cast)
+                .map(ShippingRequest.class::cast)
                 .toList();
     }
 
@@ -125,12 +125,12 @@ public class ShippingService {
 
     /* Controller endpoints moved from ShippingController into this service class */
     @PutMapping
-    public IShippingRequest confirmArrivalEndpoint(@RequestBody IShippingRequest request) {
+    public ShippingRequest confirmArrivalEndpoint(@RequestBody ShippingRequest request) {
         return confirmArrival(request).orElse(null);
     }
 
     @GetMapping
-    public List<IShippingRequest> getShippingRequestsEndpoint() {
+    public List<ShippingRequest> getShippingRequestsEndpoint() {
         return getShippingRequests();
     }
 }

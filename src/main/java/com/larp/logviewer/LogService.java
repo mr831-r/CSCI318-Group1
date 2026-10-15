@@ -1,7 +1,7 @@
 package com.larp.logviewer;
 
 import com.larp.database.DatabaseService;
-import com.larp.database.IInventoryItem;
+import com.larp.database.InventoryItem;
 import com.larp.events.AiEvent;
 import com.larp.events.ItemEvent;
 import com.larp.events.StockEvent;
@@ -46,54 +46,54 @@ public class LogService {
         this.databaseRestClient = restClientBuilder.baseUrl(databaseBaseUrl).build();
     }
 
-    public List<ILogEntry> findLogs(LocalDate start, LocalDate end) {
+    public List<LogEntry> findLogs(LocalDate start, LocalDate end) {
         return databaseService.findAllItems(LogEntry.class).stream()
                 .filter(entry -> start == null || !entry.getTimestamp().toLocalDate().isBefore(start))
                 .filter(entry -> end == null || !entry.getTimestamp().toLocalDate().isAfter(end))
-                .sorted(Comparator.comparing(ILogEntry::getTimestamp).reversed())
-                .map(ILogEntry.class::cast)
+                .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
+                .map(LogEntry.class::cast)
                 .collect(Collectors.toList());
     }
 
-    public ILogEntry addItemLog(IInventoryItem item) {
+    public LogEntry addItemLog(InventoryItem item) {
         return saveLog("Inventory item action: " + (item != null ? item.getItemCode() : "unknown"), "INFO");
     }
 
-    public ILogEntry removeItemLog(IInventoryItem item) {
+    public LogEntry removeItemLog(InventoryItem item) {
         return saveLog("Inventory item removed: " + (item != null ? item.getItemCode() : "unknown"), "WARN");
     }
 
-    public ILogEntry addLogEntry(Map<String, String> payload) {
+    public LogEntry addLogEntry(Map<String, String> payload) {
         return saveLog(payload.getOrDefault("message", "System event"), payload.getOrDefault("level", "INFO"));
     }
 
-    public ILogEntry addShippingLog(Map<String, String> payload) {
+    public LogEntry addShippingLog(Map<String, String> payload) {
         return saveLog("Shipping event: " + payload.getOrDefault("itemCode", "unknown"), payload.getOrDefault("status", "INFO"));
     }
 
-    public ILogEntry addAiLog(Map<String, String> payload) {
+    public LogEntry addAiLog(Map<String, String> payload) {
         return saveLog("AI query: " + payload.getOrDefault("query", "general search"), "INFO");
     }
 
-    public ILogEntry recordShippingConfirmation(String itemCode) {
+    public LogEntry recordShippingConfirmation(String itemCode) {
         return saveLog("Shipping confirmation received for item: " + itemCode, "INFO");
     }
 
-    public ILogEntry addLogItem(ItemEvent event) {
+    public LogEntry addLogItem(ItemEvent event) {
         return persistEventLog(
                 event.type() + " for item " + event.itemId(),
                 "INFO",
                 event.occurredAt());
     }
 
-    public ILogEntry addLogItem(StockEvent event) {
+    public LogEntry addLogItem(StockEvent event) {
         return persistEventLog(
                 event.type() + " for item " + event.itemId() + ", quantity delta " + event.quantityDelta(),
                 "INFO",
                 event.occurredAt());
     }
 
-    public ILogEntry addLogItem(AiEvent event) {
+    public LogEntry addLogItem(AiEvent event) {
         return persistEventLog("AI query: " + event.query(), "INFO", event.occurredAt());
     }
 
@@ -151,7 +151,7 @@ public class LogService {
         return persisted;
     }
 
-    private void notifyEmitters(ILogEntry entry) {
+    private void notifyEmitters(LogEntry entry) {
         for (org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter : emitters) {
             try {
                 org.springframework.web.servlet.mvc.method.annotation.SseEmitter.SseEventBuilder event = org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event()
@@ -179,33 +179,33 @@ public class LogService {
     /* Controller endpoints moved from LogViewerController into this service class */
 
     @GetMapping
-    public List<ILogEntry> getLogs(@RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+    public List<LogEntry> getLogs(@RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
                                    @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
         return findLogs(start, end);
     }
 
     @PutMapping("/item")
-    public ILogEntry addItemLogEndpoint(@RequestBody IInventoryItem item) {
+    public LogEntry addItemLogEndpoint(@RequestBody InventoryItem item) {
         return addItemLog(item);
     }
 
     @DeleteMapping("/item")
-    public ILogEntry removeItemLogEndpoint(@RequestBody IInventoryItem item) {
+    public LogEntry removeItemLogEndpoint(@RequestBody InventoryItem item) {
         return removeItemLog(item);
     }
 
     @PutMapping
-    public ILogEntry addLogEntryEndpoint(@RequestBody Map<String, String> payload) {
+    public LogEntry addLogEntryEndpoint(@RequestBody Map<String, String> payload) {
         return addLogEntry(payload);
     }
 
     @PutMapping("/shipping")
-    public ILogEntry addShippingLogEndpoint(@RequestBody Map<String, String> payload) {
+    public LogEntry addShippingLogEndpoint(@RequestBody Map<String, String> payload) {
         return addShippingLog(payload);
     }
 
     @PutMapping("/ai")
-    public ILogEntry addAiLogEndpoint(@RequestBody Map<String, String> payload) {
+    public LogEntry addAiLogEndpoint(@RequestBody Map<String, String> payload) {
         return addAiLog(payload);
     }
 

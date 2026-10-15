@@ -28,6 +28,8 @@ import java.util.Optional;
 @Service
 @RestController
 @RequestMapping("/database")
+
+// TODO: Should only have generic functions that use IDatabaseItem.
 public class DatabaseService {
 
     @PersistenceContext
@@ -75,6 +77,7 @@ public class DatabaseService {
         return true;
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
     public List<IInventoryItem> findItems(String filter, LocalDate start, LocalDate end) {
         List<IInventoryItem> matchingItems = findAllItems(InventoryItem.class).stream()
                 .filter(item -> filter == null || filter.equals(item.getItemCode()))
@@ -95,12 +98,14 @@ public class DatabaseService {
                 .toList();
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
     public List<IInventoryItem> findAllItems() {
         return findAllItems(InventoryItem.class).stream()
                 .map(IInventoryItem.class::cast)
                 .toList();
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
     public List<IInventoryItem> findByDateBetween(LocalDate start, LocalDate end) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date BETWEEN :start AND :end", InventoryItem.class);
         q.setParameter("start", start);
@@ -108,24 +113,28 @@ public class DatabaseService {
         return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
     public List<IInventoryItem> findByDateGreaterThanEqual(LocalDate start) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date >= :start", InventoryItem.class);
         q.setParameter("start", start);
         return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
     public List<IInventoryItem> findByDateLessThanEqual(LocalDate end) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date <= :end", InventoryItem.class);
         q.setParameter("end", end);
         return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
     public List<IInventoryItem> findByDescriptionContainingIgnoreCase(String description) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE LOWER(i.description) LIKE LOWER(CONCAT('%', :desc, '%')) OR LOWER(i.name) LIKE LOWER(CONCAT('%', :desc, '%'))", InventoryItem.class);
         q.setParameter("desc", description);
         return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
     }
 
+    // TODO: Should not exist. Remove this and use pre-existing fuctions.
     @Transactional
     public Optional<IInventoryItem> updateLatestItem(String filter, IInventoryItem incoming) {
         List<IInventoryItem> existingItems = findItems(filter, null, null);
@@ -144,6 +153,7 @@ public class DatabaseService {
         return Optional.of(merged);
     }
 
+    // TODO: Should not exist. Remove this and use pre-existing fuctions.
     @Transactional
     public boolean deleteLatestItem(String filter) {
         List<IInventoryItem> items = findItems(filter, null, null);
@@ -155,11 +165,13 @@ public class DatabaseService {
         return deleteItem(InventoryItem.class, toRemove.getId());
     }
 
+    // TODO: Should not exist. Remove this and use pre-existing fuctions.
     @PutMapping
     public IInventoryItem createItemEndpoint(@RequestBody IInventoryItem item) {
         return createItem(item);
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem.
     @PutMapping("/{filter}")
     public IInventoryItem createItemWithFilterEndpoint(@PathVariable String filter, @RequestBody IInventoryItem item) {
         if (item == null) {
@@ -171,6 +183,7 @@ public class DatabaseService {
         return createItem(item);
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem.
     @GetMapping("/{filter}")
     public List<IInventoryItem> readItemsEndpoint(
             @PathVariable String filter,
@@ -179,17 +192,20 @@ public class DatabaseService {
         return findItems(filter, start, end);
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem.
     @PostMapping("/{filter}")
     @Transactional
     public IInventoryItem updateItemEndpoint(@PathVariable String filter, @RequestBody IInventoryItem incoming) {
         return updateLatestItem(filter, incoming).orElse(null);
     }
 
+    // TODO: Should be using IDatabaseItem generics, not InventoryItem.
     @DeleteMapping("/{filter}")
     public void deleteItemEndpoint(@PathVariable String filter) {
         deleteLatestItem(filter);
     }
 
+    // TODO: Should be using IDatabaseItem generics, not ILogEntry. Otherwise it should be in logging service, or should not exist at all.
     @Transactional
     @PutMapping("/logs")
     public ILogEntry createLogEntryEndpoint(@RequestBody ILogEntry entry) {

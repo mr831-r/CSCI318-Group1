@@ -4,9 +4,10 @@ import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
+// TODO: Should be in editor service/folder.
 @Entity
 @Table(name = "inventory_items")
-public class InventoryItem implements IInventoryItem {
+public class InventoryItem implements IDatabaseItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
