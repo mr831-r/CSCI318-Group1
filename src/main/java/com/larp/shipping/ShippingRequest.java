@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "shipping_requests")
-public class ShippingRequest implements IDatabaseItem {
+public class ShippingRequest implements IShippingRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

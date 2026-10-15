@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "log_entries")
-public class LogEntry implements IDatabaseItem {
+public class LogEntry implements ILogEntry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

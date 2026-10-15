@@ -52,7 +52,7 @@ class ShippingServiceTest {
         when(databaseService.findItems("ITEM-1", null, null)).thenReturn(List.of(item));
         when(databaseService.createItem(request)).thenReturn(request);
 
-        Optional<ShippingRequest> result = new ShippingService(databaseService, logService, streamBridge)
+        Optional<IShippingRequest> result = new ShippingService(databaseService, logService, streamBridge)
                 .confirmArrival(request);
 
         assertTrue(result.isPresent());

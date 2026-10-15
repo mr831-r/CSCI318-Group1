@@ -1,6 +1,6 @@
 package com.larp.database;
 
-import com.larp.logviewer.LogEntry;
+import com.larp.logviewer.ILogEntry;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
@@ -75,12 +75,15 @@ public class DatabaseService {
         return true;
     }
 
-    public List<InventoryItem> findItems(String filter, LocalDate start, LocalDate end) {
-        List<InventoryItem> matchingItems = findItems(InventoryItem.class, filter);
+    public List<IInventoryItem> findItems(String filter, LocalDate start, LocalDate end) {
+        List<IInventoryItem> matchingItems = findAllItems(InventoryItem.class).stream()
+                .filter(item -> filter == null || filter.equals(item.getItemCode()))
+                .map(IInventoryItem.class::cast)
+                .toList();
         if (start != null && end != null) {
-            List<InventoryItem> history = matchingItems.stream()
+            List<IInventoryItem> history = matchingItems.stream()
                     .filter(item -> !item.getDate().isBefore(start) && !item.getDate().isAfter(end))
-                    .sorted(Comparator.comparing(InventoryItem::getDate).reversed())
+                    .sorted(Comparator.comparing(IInventoryItem::getDate).reversed())
                     .toList();
             if (!history.isEmpty()) {
                 return history;
@@ -88,75 +91,77 @@ public class DatabaseService {
         }
 
         return matchingItems.stream()
-                .sorted(Comparator.comparing(InventoryItem::getDate))
+                .sorted(Comparator.comparing(IInventoryItem::getDate))
                 .toList();
     }
 
-    public List<InventoryItem> findAllItems() {
-        return findAllItems(InventoryItem.class);
+    public List<IInventoryItem> findAllItems() {
+        return findAllItems(InventoryItem.class).stream()
+                .map(IInventoryItem.class::cast)
+                .toList();
     }
 
-    public List<InventoryItem> findByDateBetween(LocalDate start, LocalDate end) {
+    public List<IInventoryItem> findByDateBetween(LocalDate start, LocalDate end) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date BETWEEN :start AND :end", InventoryItem.class);
         q.setParameter("start", start);
         q.setParameter("end", end);
-        return q.getResultList();
+        return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
     }
 
-    public List<InventoryItem> findByDateGreaterThanEqual(LocalDate start) {
+    public List<IInventoryItem> findByDateGreaterThanEqual(LocalDate start) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date >= :start", InventoryItem.class);
         q.setParameter("start", start);
-        return q.getResultList();
+        return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
     }
 
-    public List<InventoryItem> findByDateLessThanEqual(LocalDate end) {
+    public List<IInventoryItem> findByDateLessThanEqual(LocalDate end) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date <= :end", InventoryItem.class);
         q.setParameter("end", end);
-        return q.getResultList();
+        return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
     }
 
-    public List<InventoryItem> findByDescriptionContainingIgnoreCase(String description) {
+    public List<IInventoryItem> findByDescriptionContainingIgnoreCase(String description) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE LOWER(i.description) LIKE LOWER(CONCAT('%', :desc, '%')) OR LOWER(i.name) LIKE LOWER(CONCAT('%', :desc, '%'))", InventoryItem.class);
         q.setParameter("desc", description);
-        return q.getResultList();
+        return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
     }
 
     @Transactional
-    public Optional<InventoryItem> updateLatestItem(String filter, InventoryItem incoming) {
-        List<InventoryItem> existingItems = findItems(filter, null, null);
+    public Optional<IInventoryItem> updateLatestItem(String filter, IInventoryItem incoming) {
+        List<IInventoryItem> existingItems = findItems(filter, null, null);
         if (existingItems.isEmpty()) {
             return Optional.empty();
         }
 
-        InventoryItem existing = existingItems.get(existingItems.size() - 1);
+        IInventoryItem existing = existingItems.get(existingItems.size() - 1);
         existing.setDescription(incoming.getDescription() != null ? incoming.getDescription() : existing.getDescription());
         existing.setQuantity(incoming.getQuantity() != null ? incoming.getQuantity() : existing.getQuantity());
         existing.setStatus(incoming.getStatus() != null ? incoming.getStatus() : existing.getStatus());
         existing.setDate(incoming.getDate() != null ? incoming.getDate() : existing.getDate());
         existing.setPayslipReference(incoming.getPayslipReference() != null ? incoming.getPayslipReference() : existing.getPayslipReference());
 
-        InventoryItem merged = createItem(existing);
+        IInventoryItem merged = createItem(existing);
         return Optional.of(merged);
     }
 
     @Transactional
     public boolean deleteLatestItem(String filter) {
-        List<InventoryItem> items = findItems(filter, null, null);
+        List<IInventoryItem> items = findItems(filter, null, null);
         if (items.isEmpty()) {
             return false;
         }
 
-        InventoryItem toRemove = items.get(items.size() - 1);
+        IInventoryItem toRemove = items.get(items.size() - 1);
         return deleteItem(InventoryItem.class, toRemove.getId());
     }
 
     @PutMapping
-    public InventoryItem createItemEndpoint(@RequestBody InventoryItem item) {
+    public IInventoryItem createItemEndpoint(@RequestBody IInventoryItem item) {
         return createItem(item);
     }
 
     @PutMapping("/{filter}")
-    public InventoryItem createItemWithFilterEndpoint(@PathVariable String filter, @RequestBody InventoryItem item) {
+    public IInventoryItem createItemWithFilterEndpoint(@PathVariable String filter, @RequestBody IInventoryItem item) {
         if (item == null) {
             item = new InventoryItem();
         }
@@ -167,7 +172,7 @@ public class DatabaseService {
     }
 
     @GetMapping("/{filter}")
-    public List<InventoryItem> readItemsEndpoint(
+    public List<IInventoryItem> readItemsEndpoint(
             @PathVariable String filter,
             @RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
@@ -176,7 +181,7 @@ public class DatabaseService {
 
     @PostMapping("/{filter}")
     @Transactional
-    public InventoryItem updateItemEndpoint(@PathVariable String filter, @RequestBody InventoryItem incoming) {
+    public IInventoryItem updateItemEndpoint(@PathVariable String filter, @RequestBody IInventoryItem incoming) {
         return updateLatestItem(filter, incoming).orElse(null);
     }
 
@@ -187,7 +192,7 @@ public class DatabaseService {
 
     @Transactional
     @PutMapping("/logs")
-    public LogEntry createLogEntryEndpoint(@RequestBody LogEntry entry) {
+    public ILogEntry createLogEntryEndpoint(@RequestBody ILogEntry entry) {
         return createItem(entry);
     }
 }

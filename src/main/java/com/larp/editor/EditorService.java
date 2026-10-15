@@ -1,6 +1,7 @@
 package com.larp.editor;
 
 import com.larp.database.DatabaseService;
+import com.larp.database.IInventoryItem;
 import com.larp.database.InventoryItem;
 import com.larp.events.ItemEvent;
 import com.larp.logviewer.LogService;
@@ -34,7 +35,7 @@ public class EditorService {
         this.streamBridge = streamBridge;
     }
 
-    public InventoryItem validateAndSave(InventoryItem item) {
+    public IInventoryItem validateAndSave(IInventoryItem item) {
         if (item == null) {
             throw new IllegalArgumentException("Inventory item cannot be null");
         }
@@ -58,7 +59,7 @@ public class EditorService {
         }
 
         boolean updating = item.getId() != null;
-        InventoryItem saved = databaseService.createItem(item);
+        IInventoryItem saved = databaseService.createItem(item);
 
         // Broadcast/log the addition through the centralized LogService
         logService.addItemLog(saved);
@@ -66,19 +67,19 @@ public class EditorService {
         return saved;
     }
 
-    public List<InventoryItem> getAllItems() {
+    public List<IInventoryItem> getAllItems() {
         return databaseService.findAllItems();
     }
 
     /* Controller endpoints moved from EditorController into this service class */
 
     @PutMapping
-    public InventoryItem addOrUpdateItem(@RequestBody InventoryItem item) {
+    public IInventoryItem addOrUpdateItem(@RequestBody IInventoryItem item) {
         return validateAndSave(item);
     }
 
     @PutMapping("/prepopulate")
-    public List<InventoryItem> prepopulateInventory(@RequestBody(required = false) List<InventoryItem> items) {
+    public List<IInventoryItem> prepopulateInventory(@RequestBody(required = false) List<IInventoryItem> items) {
         if (items == null || items.isEmpty()) {
             return seedSampleInventory();
         }
@@ -90,7 +91,7 @@ public class EditorService {
     }
 
     @GetMapping
-    public List<InventoryItem> getAllItemsEndpoint() {
+    public List<IInventoryItem> getAllItemsEndpoint() {
         return getAllItems();
     }
 
@@ -108,8 +109,8 @@ public class EditorService {
         deleteItem(itemCode);
     }
 
-    public List<InventoryItem> seedSampleInventory() {
-        List<InventoryItem> sampleItems = new ArrayList<>();
+    public List<IInventoryItem> seedSampleInventory() {
+        List<IInventoryItem> sampleItems = new ArrayList<>();
 
         String[][] seedData = {
                 {"ITEM-1001", "Iron sword", "12", "available", "2026-09-01", "FAKE-INV-1001"},
@@ -135,7 +136,7 @@ public class EditorService {
         };
 
         for (String[] row : seedData) {
-            InventoryItem item = new InventoryItem();
+            IInventoryItem item = new InventoryItem();
             item.setItemCode(row[0]);
             item.setName(row[1]);
             item.setDescription("Imported: " + row[1]);
@@ -146,8 +147,8 @@ public class EditorService {
             sampleItems.add(item);
         }
 
-        List<InventoryItem> savedItems = new ArrayList<>();
-        for (InventoryItem item : sampleItems) {
+        List<IInventoryItem> savedItems = new ArrayList<>();
+        for (IInventoryItem item : sampleItems) {
             savedItems.add(validateAndSave(item));
         }
 
@@ -155,9 +156,9 @@ public class EditorService {
     }
 
     public void deleteItem(String itemCode) {
-        List<InventoryItem> matches = databaseService.findItems(itemCode, null, null);
+        List<IInventoryItem> matches = databaseService.findItems(itemCode, null, null);
         if (!matches.isEmpty()) {
-            InventoryItem toDelete = matches.get(matches.size() - 1);
+            IInventoryItem toDelete = matches.get(matches.size() - 1);
             boolean deleted = databaseService.deleteLatestItem(itemCode);
             // Broadcast/log the removal through the centralized LogService
             logService.removeItemLog(toDelete);

@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "inventory_items")
-public class InventoryItem implements com.larp.database.IDatabaseItem {
+public class InventoryItem implements IInventoryItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,6 +1,7 @@
 package com.larp.shipping;
 
 import com.larp.database.DatabaseService;
+import com.larp.database.IInventoryItem;
 import com.larp.database.InventoryItem;
 import com.larp.events.StockEvent;
 import com.larp.logviewer.LogService;
@@ -44,14 +45,14 @@ public class ShippingService {
     }
 
     @Transactional
-    public Optional<ShippingRequest> confirmArrival(ShippingRequest request) {
+    public Optional<IShippingRequest> confirmArrival(IShippingRequest request) {
         if (request == null || request.getItemCode() == null || request.getItemCode().isBlank()) {
             return Optional.empty();
         }
 
-        List<InventoryItem> matchingItems = databaseService.findItems(request.getItemCode(), null, null);
+        List<IInventoryItem> matchingItems = databaseService.findItems(request.getItemCode(), null, null);
         if (!matchingItems.isEmpty()) {
-            InventoryItem incoming = new InventoryItem();
+            IInventoryItem incoming = new InventoryItem();
             incoming.setStatus("ARRIVED");
             if (request.getQuantity() != null) {
                 incoming.setQuantity(request.getQuantity());
@@ -62,7 +63,7 @@ public class ShippingService {
             databaseService.updateLatestItem(request.getItemCode(), incoming);
         }
 
-        ShippingRequest saved = databaseService.createItem(request);
+        IShippingRequest saved = databaseService.createItem(request);
         logService.recordShippingConfirmation(request.getItemCode());
         int quantityDelta = request.getQuantity() == null ? 0 : request.getQuantity();
         StockEvent event = new StockEvent(
@@ -81,8 +82,10 @@ public class ShippingService {
         return Optional.of(saved);
     }
 
-    public List<ShippingRequest> getShippingRequests() {
-        return databaseService.findAllItems(ShippingRequest.class);
+    public List<IShippingRequest> getShippingRequests() {
+        return databaseService.findAllItems(ShippingRequest.class).stream()
+                .map(IShippingRequest.class::cast)
+                .toList();
     }
 
     @Bean
@@ -122,12 +125,12 @@ public class ShippingService {
 
     /* Controller endpoints moved from ShippingController into this service class */
     @PutMapping
-    public ShippingRequest confirmArrivalEndpoint(@RequestBody ShippingRequest request) {
+    public IShippingRequest confirmArrivalEndpoint(@RequestBody IShippingRequest request) {
         return confirmArrival(request).orElse(null);
     }
 
     @GetMapping
-    public List<ShippingRequest> getShippingRequestsEndpoint() {
+    public List<IShippingRequest> getShippingRequestsEndpoint() {
         return getShippingRequests();
     }
 }
