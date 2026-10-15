@@ -2,8 +2,10 @@ package com.larp.ai;
 
 import com.larp.database.DatabaseService;
 import com.larp.database.InventoryItem;
+import com.larp.events.AiEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,6 +18,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -35,10 +38,15 @@ public class AiSearchService {
 
     private final DatabaseService databaseService;
     private final com.larp.logviewer.LogService logService;
+    private final StreamBridge streamBridge;
 
-    public AiSearchService(DatabaseService databaseService, com.larp.logviewer.LogService logService) {
+    public AiSearchService(
+            DatabaseService databaseService,
+            com.larp.logviewer.LogService logService,
+            StreamBridge streamBridge) {
         this.databaseService = databaseService;
         this.logService = logService;
+        this.streamBridge = streamBridge;
     }
 
     public List<InventoryItem> search(String query, LocalDate startDate, LocalDate endDate) {
@@ -84,6 +92,9 @@ public class AiSearchService {
             logService.addAiLog(logPayload);
         } catch (Exception ignored) {
             // ensure search still returns even if logging fails
+        }
+        if (!streamBridge.send("aiEvents-out-0", new AiEvent(query, Instant.now()))) {
+            throw new IllegalStateException("Failed to publish AI search event");
         }
 
         return buildResponse(query, matches, startDate, endDate, apiKey, model, providerUrl);

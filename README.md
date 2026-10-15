@@ -4,7 +4,7 @@ This project implements a simplified Spring Boot version of the LARP specificati
 
 ## Microservices included
 
-- Database service: inventory storage and search
+- Database service: generic persistence for inventory, log, and shipping records
 - Database editor: validation and update workflow
 - Log viewer: audit trail recording and date-range queries
 - Shipping manager: queue tracking and dispatch updates
@@ -15,6 +15,7 @@ This project implements a simplified Spring Boot version of the LARP specificati
 This project requires Java 21. Set it explicitly before running Maven:
 
 ```bash
+docker compose up -d
 ./mvnw spring-boot:run
 ```
 
@@ -35,6 +36,24 @@ The app uses an in-memory H2 database with the following settings:
 
 This is configured in `application.properties`, and the console servlet is registered explicitly for the Spring Boot 4 / Jakarta servlet stack so the page resolves correctly.
 
+### Kafka
+
+Kafka event messaging uses a local Apache Kafka broker. Start it before the application:
+
+```bash
+docker compose up -d
+```
+
+The broker defaults to `localhost:9092`; override it with `KAFKA_BROKERS` when needed. The Database REST base URL used by Kafka consumers defaults to `http://localhost:48484` and can be overridden with `DATABASE_SERVICE_URL`.
+
+Events are published after their corresponding existing operation succeeds:
+
+- `item-events` - editor item additions, updates, and removals; consumed by the Log Viewer
+- `ai-events` - AI searches; consumed by the Log Viewer
+- `stock-events` - shipping stock arrivals; consumed by the Log Viewer and stock-level processor
+
+The Log Viewer persists consumed events by calling `PUT /database/logs`; Kafka consumers do not write directly to H2. Stock event records are keyed by item code. The Kafka Streams stock-level processor aggregates arrivals and dispatches and updates inventory through the existing `POST /database/{filter}` endpoint.
+
 ## API endpoints and descriptions
 
 ### Root and health
@@ -50,6 +69,7 @@ This is configured in `application.properties`, and the console servlet is regis
 - `GET /database/{filter}?start=YYYY-MM-DD&end=YYYY-MM-DD` - return historical inventory records within a date range
 - `POST /database/{filter}` - update the most recent matching inventory record
 - `DELETE /database/{filter}` - remove the most recent matching inventory record
+- `PUT /database/logs` - persist a log entry sent by Kafka event consumers
 
 ### Database editor service
 - `PUT /editor` - add or update a single inventory item after validation
@@ -87,7 +107,7 @@ This is configured in `application.properties`, and the console servlet is regis
 ## Workflow overview
 
 ### Typical usage flow
-1. Seed data using `POST /editor/seed` or bulk load via `PUT /editor/prepopulate`.
+1. Seed data by sending an empty body to `PUT /editor/prepopulate`, or bulk load records via the same endpoint.
 2. Query inventory using `GET /database/{filter}` or the AI endpoint `PUT /ai`.
 3. Update or validate stock through `PUT /editor`.
 4. Confirm stock arrival with `PUT /shipping`.

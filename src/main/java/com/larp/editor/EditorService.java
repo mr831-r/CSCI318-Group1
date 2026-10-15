@@ -2,7 +2,9 @@ package com.larp.editor;
 
 import com.larp.database.DatabaseService;
 import com.larp.database.InventoryItem;
+import com.larp.events.ItemEvent;
 import com.larp.logviewer.LogService;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,10 +26,12 @@ public class EditorService {
 
     private final DatabaseService databaseService;
     private final LogService logService;
+    private final StreamBridge streamBridge;
 
-    public EditorService(DatabaseService databaseService, LogService logService) {
+    public EditorService(DatabaseService databaseService, LogService logService, StreamBridge streamBridge) {
         this.databaseService = databaseService;
         this.logService = logService;
+        this.streamBridge = streamBridge;
     }
 
     public InventoryItem validateAndSave(InventoryItem item) {
@@ -52,10 +57,12 @@ public class EditorService {
             throw new IllegalArgumentException("date is required");
         }
 
+        boolean updating = item.getId() != null;
         InventoryItem saved = databaseService.createItem(item);
 
         // Broadcast/log the addition through the centralized LogService
         logService.addItemLog(saved);
+        publishItemEvent(updating ? "ITEM_UPDATED" : "ITEM_ADDED", saved.getItemCode());
         return saved;
     }
 
@@ -151,9 +158,19 @@ public class EditorService {
         List<InventoryItem> matches = databaseService.findItems(itemCode, null, null);
         if (!matches.isEmpty()) {
             InventoryItem toDelete = matches.get(matches.size() - 1);
-            databaseService.deleteLatestItem(itemCode);
+            boolean deleted = databaseService.deleteLatestItem(itemCode);
             // Broadcast/log the removal through the centralized LogService
             logService.removeItemLog(toDelete);
+            if (deleted) {
+                publishItemEvent("ITEM_REMOVED", toDelete.getItemCode());
+            }
+        }
+    }
+
+    private void publishItemEvent(String type, String itemId) {
+        ItemEvent event = new ItemEvent(type, itemId, Instant.now());
+        if (!streamBridge.send("itemEvents-out-0", event)) {
+            throw new IllegalStateException("Failed to publish item event " + type);
         }
     }
 }

@@ -2,15 +2,22 @@ package com.larp.shipping;
 
 import com.larp.database.DatabaseService;
 import com.larp.database.InventoryItem;
+import com.larp.events.StockEvent;
 import com.larp.logviewer.LogService;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -19,9 +26,22 @@ import static org.mockito.Mockito.when;
 class ShippingServiceTest {
 
     @Test
+    void stockLevelAggregationAddsArrivalsAndSubtractsDispatches() {
+        StockEvent arrival = new StockEvent("STOCK_ARRIVED", "ITEM-1", 8, Instant.now());
+        StockEvent dispatch = new StockEvent("STOCK_DISPATCHED", "ITEM-1", 3, Instant.now());
+
+        int afterArrival = ShippingService.applyStockEvent(0, arrival);
+
+        assertEquals(8, afterArrival);
+        assertEquals(5, ShippingService.applyStockEvent(afterArrival, dispatch));
+    }
+
+    @Test
     void confirmArrivalUpdatesInventoryPersistsRequestAndLogsEvent() {
         DatabaseService databaseService = mock(DatabaseService.class);
         LogService logService = mock(LogService.class);
+        StreamBridge streamBridge = mock(StreamBridge.class);
+        when(streamBridge.send(eq("stockEvents-out-0"), any(Message.class))).thenReturn(true);
         InventoryItem item = new InventoryItem();
         item.setItemCode("ITEM-1");
         item.setStatus("SHIPPING");
@@ -30,17 +50,23 @@ class ShippingServiceTest {
         request.setQuantity(7);
         request.setRequestedDate(LocalDate.of(2026, 9, 16));
         when(databaseService.findItems("ITEM-1", null, null)).thenReturn(List.of(item));
-        when(databaseService.saveShippingRequest(request)).thenReturn(request);
+        when(databaseService.createItem(request)).thenReturn(request);
 
-        Optional<ShippingRequest> result = new ShippingService(databaseService, logService)
+        Optional<ShippingRequest> result = new ShippingService(databaseService, logService, streamBridge)
                 .confirmArrival(request);
 
         assertTrue(result.isPresent());
-        assertEquals("ARRIVED", databaseService.findItems("ITEM-1", null, null).get(0).getStatus());
-        assertEquals(7, databaseService.findItems("ITEM-1", null, null).get(0).getQuantity());
-        assertEquals(LocalDate.of(2026, 9, 16), databaseService.findItems("ITEM-1", null, null).get(0).getDate());
-        verify(databaseService).updateLatestItem(any(String.class), any(InventoryItem.class));
-        verify(databaseService).saveShippingRequest(request);
+        ArgumentCaptor<InventoryItem> updateCaptor = ArgumentCaptor.forClass(InventoryItem.class);
+        verify(databaseService).updateLatestItem(eq("ITEM-1"), updateCaptor.capture());
+        assertEquals("ARRIVED", updateCaptor.getValue().getStatus());
+        assertEquals(7, updateCaptor.getValue().getQuantity());
+        assertEquals(LocalDate.of(2026, 9, 16), updateCaptor.getValue().getDate());
+        verify(databaseService).createItem(request);
         verify(logService).recordShippingConfirmation("ITEM-1");
+        ArgumentCaptor<Message<StockEvent>> eventCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(streamBridge).send(eq("stockEvents-out-0"), eventCaptor.capture());
+        assertEquals("STOCK_ARRIVED", eventCaptor.getValue().getPayload().type());
+        assertEquals("ITEM-1", eventCaptor.getValue().getHeaders().get(KafkaHeaders.KEY));
+        assertEquals(7, eventCaptor.getValue().getPayload().quantityDelta());
     }
 }

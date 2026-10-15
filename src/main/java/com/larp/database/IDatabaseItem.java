@@ -7,6 +7,8 @@ package com.larp.database;
  */
 public interface IDatabaseItem {
 
+    Long getId();
+
     /**
      * A filter name used by the DatabaseHostService when listing or querying
      * items. Default is the simple class name of the implementation.

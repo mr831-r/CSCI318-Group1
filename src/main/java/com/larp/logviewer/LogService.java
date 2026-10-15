@@ -2,7 +2,13 @@ package com.larp.logviewer;
 
 import com.larp.database.DatabaseService;
 import com.larp.database.InventoryItem;
+import com.larp.events.AiEvent;
+import com.larp.events.ItemEvent;
+import com.larp.events.StockEvent;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,10 +18,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Service
 @RestController
@@ -23,15 +34,24 @@ import java.util.Map;
 public class LogService {
 
     private final DatabaseService databaseService;
+    private final RestClient databaseRestClient;
 
     private final java.util.List<org.springframework.web.servlet.mvc.method.annotation.SseEmitter> emitters = new java.util.concurrent.CopyOnWriteArrayList<>();
 
-    public LogService(DatabaseService databaseService) {
+    public LogService(
+            DatabaseService databaseService,
+            RestClient.Builder restClientBuilder,
+            @Value("${larp.database.base-url:http://localhost:48484}") String databaseBaseUrl) {
         this.databaseService = databaseService;
+        this.databaseRestClient = restClientBuilder.baseUrl(databaseBaseUrl).build();
     }
 
     public List<LogEntry> findLogs(LocalDate start, LocalDate end) {
-        return databaseService.findLogs(start, end);
+        return databaseService.findAllItems(LogEntry.class).stream()
+                .filter(entry -> start == null || !entry.getTimestamp().toLocalDate().isBefore(start))
+                .filter(entry -> end == null || !entry.getTimestamp().toLocalDate().isAfter(end))
+                .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
+                .collect(Collectors.toList());
     }
 
     public LogEntry addItemLog(InventoryItem item) {
@@ -58,6 +78,39 @@ public class LogService {
         return saveLog("Shipping confirmation received for item: " + itemCode, "INFO");
     }
 
+    public LogEntry addLogItem(ItemEvent event) {
+        return persistEventLog(
+                event.type() + " for item " + event.itemId(),
+                "INFO",
+                event.occurredAt());
+    }
+
+    public LogEntry addLogItem(StockEvent event) {
+        return persistEventLog(
+                event.type() + " for item " + event.itemId() + ", quantity delta " + event.quantityDelta(),
+                "INFO",
+                event.occurredAt());
+    }
+
+    public LogEntry addLogItem(AiEvent event) {
+        return persistEventLog("AI query: " + event.query(), "INFO", event.occurredAt());
+    }
+
+    @Bean
+    public Consumer<ItemEvent> logItemEvents() {
+        return this::addLogItem;
+    }
+
+    @Bean
+    public Consumer<AiEvent> logAiEvents() {
+        return this::addLogItem;
+    }
+
+    @Bean
+    public Consumer<StockEvent> logStockEvents() {
+        return this::addLogItem;
+    }
+
     private LogEntry saveLog(String message, String level) {
         LogEntry logEntry = new LogEntry();
         logEntry.setMessage(message);
@@ -71,11 +124,29 @@ public class LogService {
             // If printing fails for any reason, continue to persist the log
         }
 
-        LogEntry persisted = databaseService.saveLogEntry(logEntry);
+        LogEntry persisted = databaseService.createItem(logEntry);
 
         // Notify SSE subscribers of the new log entry
         notifyEmitters(persisted);
 
+        return persisted;
+    }
+
+    private LogEntry persistEventLog(String message, String level, Instant occurredAt) {
+        LogEntry entry = new LogEntry();
+        entry.setMessage(message);
+        entry.setLevel(level);
+        entry.setTimestamp(LocalDateTime.ofInstant(occurredAt, ZoneId.systemDefault()));
+
+        LogEntry persisted = databaseRestClient.put()
+                .uri("/database/logs")
+                .body(entry)
+                .retrieve()
+                .body(LogEntry.class);
+        if (persisted == null) {
+            throw new IllegalStateException("Database service returned no persisted log entry");
+        }
+        notifyEmitters(persisted);
         return persisted;
     }
 

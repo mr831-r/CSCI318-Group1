@@ -1,11 +1,12 @@
 package com.larp.database;
 
 import com.larp.logviewer.LogEntry;
-import com.larp.shipping.ShippingRequest;
-import com.larp.shipping.ShippingRequestRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,46 +33,69 @@ public class DatabaseService {
     @PersistenceContext
     private EntityManager em;
 
-    private final ShippingRequestRepository shippingRequestRepository;
-
-    public DatabaseService(ShippingRequestRepository shippingRequestRepository) {
-        this.shippingRequestRepository = shippingRequestRepository;
-    }
-
-    // Inventory operations
-    // TODO: Use IDatabaseItem instead. All other services have objects that inherit IDatabase item, and should all be able to be added to the database using these functions
     @Transactional
-    public InventoryItem createItem(InventoryItem item) {
-        // Use merge so method works for both new and detached entities
-        InventoryItem merged = em.merge(item);
-        return merged;
+    public <T extends IDatabaseItem> T createItem(T item) {
+        if (item == null) {
+            throw new IllegalArgumentException("Database item cannot be null");
+        }
+        return em.merge(item);
     }
 
-    // TODO: Use IDatabaseItem instead
+    public <T extends IDatabaseItem> List<T> findAllItems(Class<T> itemType) {
+        CriteriaBuilder builder = em.getCriteriaBuilder();
+        CriteriaQuery<T> query = builder.createQuery(itemType);
+        Root<T> item = query.from(itemType);
+        query.select(item);
+        return em.createQuery(query).getResultList();
+    }
+
+    public <T extends IDatabaseItem> Optional<T> findItem(Class<T> itemType, Long id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(em.find(itemType, id));
+    }
+
+    public <T extends IDatabaseItem> List<T> findItems(Class<T> itemType, String itemCode) {
+        return findAllItems(itemType).stream()
+                .filter(item -> itemCode == null || itemCode.equals(item.getItemCode()))
+                .toList();
+    }
+
+    @Transactional
+    public <T extends IDatabaseItem> boolean deleteItem(Class<T> itemType, Long id) {
+        if (id == null) {
+            return false;
+        }
+        T item = em.find(itemType, id);
+        if (item == null) {
+            return false;
+        }
+        em.remove(item);
+        return true;
+    }
+
     public List<InventoryItem> findItems(String filter, LocalDate start, LocalDate end) {
+        List<InventoryItem> matchingItems = findItems(InventoryItem.class, filter);
         if (start != null && end != null) {
-            TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.itemCode = :itemCode AND i.date BETWEEN :start AND :end ORDER BY i.date DESC", InventoryItem.class);
-            q.setParameter("itemCode", filter);
-            q.setParameter("start", start);
-            q.setParameter("end", end);
-            List<InventoryItem> history = q.getResultList();
+            List<InventoryItem> history = matchingItems.stream()
+                    .filter(item -> !item.getDate().isBefore(start) && !item.getDate().isAfter(end))
+                    .sorted(Comparator.comparing(InventoryItem::getDate).reversed())
+                    .toList();
             if (!history.isEmpty()) {
                 return history;
             }
         }
 
-        TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.itemCode = :itemCode ORDER BY i.date ASC", InventoryItem.class);
-        q.setParameter("itemCode", filter);
-        return q.getResultList();
+        return matchingItems.stream()
+                .sorted(Comparator.comparing(InventoryItem::getDate))
+                .toList();
     }
 
-    // TODO: Use IDatabaseItem instead
     public List<InventoryItem> findAllItems() {
-        TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i", InventoryItem.class);
-        return q.getResultList();
+        return findAllItems(InventoryItem.class);
     }
 
-    // TODO: Use IDatabaseItem instead
     public List<InventoryItem> findByDateBetween(LocalDate start, LocalDate end) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date BETWEEN :start AND :end", InventoryItem.class);
         q.setParameter("start", start);
@@ -79,28 +103,24 @@ public class DatabaseService {
         return q.getResultList();
     }
 
-    // TODO: Use IDatabaseItem instead
     public List<InventoryItem> findByDateGreaterThanEqual(LocalDate start) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date >= :start", InventoryItem.class);
         q.setParameter("start", start);
         return q.getResultList();
     }
 
-    // TODO: Use IDatabaseItem instead
     public List<InventoryItem> findByDateLessThanEqual(LocalDate end) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date <= :end", InventoryItem.class);
         q.setParameter("end", end);
         return q.getResultList();
     }
 
-    // TODO: Use IDatabaseItem instead
     public List<InventoryItem> findByDescriptionContainingIgnoreCase(String description) {
         TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE LOWER(i.description) LIKE LOWER(CONCAT('%', :desc, '%')) OR LOWER(i.name) LIKE LOWER(CONCAT('%', :desc, '%'))", InventoryItem.class);
         q.setParameter("desc", description);
         return q.getResultList();
     }
 
-    // TODO: Use IDatabaseItem instead
     @Transactional
     public Optional<InventoryItem> updateLatestItem(String filter, InventoryItem incoming) {
         List<InventoryItem> existingItems = findItems(filter, null, null);
@@ -115,11 +135,10 @@ public class DatabaseService {
         existing.setDate(incoming.getDate() != null ? incoming.getDate() : existing.getDate());
         existing.setPayslipReference(incoming.getPayslipReference() != null ? incoming.getPayslipReference() : existing.getPayslipReference());
 
-        InventoryItem merged = em.merge(existing);
+        InventoryItem merged = createItem(existing);
         return Optional.of(merged);
     }
 
-    // TODO: Use IDatabaseItem instead
     @Transactional
     public boolean deleteLatestItem(String filter) {
         List<InventoryItem> items = findItems(filter, null, null);
@@ -128,52 +147,14 @@ public class DatabaseService {
         }
 
         InventoryItem toRemove = items.get(items.size() - 1);
-        InventoryItem managed = em.contains(toRemove) ? toRemove : em.merge(toRemove);
-        em.remove(managed);
-        return true;
+        return deleteItem(InventoryItem.class, toRemove.getId());
     }
 
-    // Log operations
-    // TODO: Move to logging service, use DatabaseService functions/CRUD
-    public List<LogEntry> findLogs(LocalDate start, LocalDate end) {
-        if (start != null && end != null) {
-            TypedQuery<LogEntry> q = em.createQuery("SELECT l FROM LogEntry l WHERE l.timestamp BETWEEN :start AND :end ORDER BY l.timestamp DESC", LogEntry.class);
-            q.setParameter("start", start.atStartOfDay());
-            q.setParameter("end", end.atTime(23, 59, 59));
-            return q.getResultList();
-        }
-        TypedQuery<LogEntry> q = em.createQuery("SELECT l FROM LogEntry l ORDER BY l.timestamp DESC", LogEntry.class);
-        return q.getResultList();
-    }
-
-    // TODO: Move to logging service, use DatabaseService functions/CRUD
-    @Transactional
-    public LogEntry saveLogEntry(LogEntry entry) {
-        if (entry.getId() == null) {
-            em.persist(entry);
-            return entry;
-        }
-        return em.merge(entry);
-    }
-
-    // Shipping operations
-    // TODO: Move to shipping service, use DatabaseService functions/CRUD
-    public ShippingRequest saveShippingRequest(ShippingRequest request) {
-        return shippingRequestRepository.save(request);
-    }
-
-    // TODO: Move to shipping service, use DatabaseService functions/CRUD
-    public List<ShippingRequest> getShippingRequests() {
-        return shippingRequestRepository.findAll();
-    }
-
-    // TODO: Use IDatabaseItem
     @PutMapping
     public InventoryItem createItemEndpoint(@RequestBody InventoryItem item) {
         return createItem(item);
     }
 
-    // TODO: Use IDatabaseItem
     @PutMapping("/{filter}")
     public InventoryItem createItemWithFilterEndpoint(@PathVariable String filter, @RequestBody InventoryItem item) {
         if (item == null) {
@@ -185,7 +166,6 @@ public class DatabaseService {
         return createItem(item);
     }
 
-    // TODO: Use IDatabaseItem
     @GetMapping("/{filter}")
     public List<InventoryItem> readItemsEndpoint(
             @PathVariable String filter,
@@ -194,8 +174,8 @@ public class DatabaseService {
         return findItems(filter, start, end);
     }
 
-    // TODO: Use IDatabaseItem
     @PostMapping("/{filter}")
+    @Transactional
     public InventoryItem updateItemEndpoint(@PathVariable String filter, @RequestBody InventoryItem incoming) {
         return updateLatestItem(filter, incoming).orElse(null);
     }
@@ -203,5 +183,11 @@ public class DatabaseService {
     @DeleteMapping("/{filter}")
     public void deleteItemEndpoint(@PathVariable String filter) {
         deleteLatestItem(filter);
+    }
+
+    @Transactional
+    @PutMapping("/logs")
+    public LogEntry createLogEntryEndpoint(@RequestBody LogEntry entry) {
+        return createItem(entry);
     }
 }
