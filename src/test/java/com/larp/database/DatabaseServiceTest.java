@@ -73,19 +73,19 @@ class DatabaseServiceTest {
         shippingRequest.setStatus("PENDING");
         shippingRequest.setRequestedDate(LocalDate.of(2026, 10, 14));
 
-        InventoryItem savedInventory = databaseService.createItem(inventoryItem);
-        LogEntry savedLog = databaseService.createItem(logEntry);
-        ShippingRequest savedShipping = databaseService.createItem(shippingRequest);
+        InventoryItem savedInventory = InventoryItem.class.cast(databaseService.createItem(inventoryItem));
+        LogEntry savedLog = LogEntry.class.cast(databaseService.createItem(logEntry));
+        ShippingRequest savedShipping = ShippingRequest.class.cast(databaseService.createItem(shippingRequest));
 
-        assertTrue(databaseService.findItem(InventoryItem.class, savedInventory.getId()).isPresent());
-        assertTrue(databaseService.findItem(LogEntry.class, savedLog.getId()).isPresent());
-        assertTrue(databaseService.findItem(ShippingRequest.class, savedShipping.getId()).isPresent());
-        assertEquals(1, databaseService.findAllItems(InventoryItem.class).size());
-        assertEquals(1, databaseService.findAllItems(LogEntry.class).size());
-        assertEquals(1, databaseService.findAllItems(ShippingRequest.class).size());
+        assertTrue(databaseService.findItem("logistics", savedInventory.getId()).isPresent());
+        assertTrue(databaseService.findItem("log", savedLog.getId()).isPresent());
+        assertTrue(databaseService.findItem("shipping", savedShipping.getId()).isPresent());
+        assertEquals(1, databaseService.findItems("logistics", null, null, null).size());
+        assertEquals(1, databaseService.findItems("log", null, null, null).size());
+        assertEquals(1, databaseService.findItems("shipping", null, null, null).size());
 
-        assertTrue(databaseService.deleteItem(ShippingRequest.class, savedShipping.getId()));
-        assertTrue(databaseService.findItem(ShippingRequest.class, savedShipping.getId()).isEmpty());
+        assertTrue(databaseService.deleteItem(savedShipping));
+        assertTrue(databaseService.findItem("shipping", savedShipping.getId()).isEmpty());
     }
 
     @Test
@@ -93,29 +93,33 @@ class DatabaseServiceTest {
         InventoryItem older = inventoryItem("ITEM-GENERIC", LocalDate.of(2026, 10, 13), 2);
         InventoryItem latest = inventoryItem("ITEM-GENERIC", LocalDate.of(2026, 10, 14), 5);
         databaseService.createItem(older);
-        latest = databaseService.createItem(latest);
+        latest = InventoryItem.class.cast(databaseService.createItem(latest));
 
         List<InventoryItem> history = databaseService.findItems(
-                InventoryItem.class,
+                "logistics",
                 "ITEM-GENERIC",
                 LocalDate.of(2026, 10, 14),
-                LocalDate.of(2026, 10, 14));
+                LocalDate.of(2026, 10, 14)).stream()
+                .map(InventoryItem.class::cast)
+                .toList();
         assertEquals(List.of(latest), history);
-        assertEquals(latest, databaseService.findLatestItem(InventoryItem.class, "ITEM-GENERIC").orElseThrow());
+        assertEquals(
+                latest,
+                InventoryItem.class.cast(databaseService.findLatestItem("logistics", "ITEM-GENERIC").orElseThrow()));
 
         InventoryItem update = new InventoryItem();
         update.setQuantity(8);
         update.setStatus("ARRIVED");
-        InventoryItem updated = databaseService.updateItem(
-                InventoryItem.class,
-                latest.getId(),
-                update).orElseThrow();
+        InventoryItem updated = InventoryItem.class.cast(databaseService.updateLatestItem(
+                "logistics",
+                "ITEM-GENERIC",
+                update).orElseThrow());
         assertEquals(8, updated.getQuantity());
         assertEquals("ARRIVED", updated.getStatus());
         assertEquals("Test item", updated.getName());
 
-        assertTrue(databaseService.deleteItem(InventoryItem.class, updated.getId()));
-        assertTrue(databaseService.findItem(InventoryItem.class, updated.getId()).isEmpty());
+        assertTrue(databaseService.deleteItem(updated));
+        assertTrue(databaseService.findItem("logistics", updated.getId()).isEmpty());
     }
 
     private InventoryItem inventoryItem(String itemCode, LocalDate date, int quantity) {

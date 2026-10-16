@@ -57,7 +57,7 @@ public class EditorService {
         }
 
         boolean updating = item.getId() != null;
-        InventoryItem saved = databaseService.createItem(item);
+        InventoryItem saved = InventoryItem.class.cast(databaseService.createItem(item));
 
         // Broadcast/log the addition through the centralized LogService
         logService.addItemLog(saved);
@@ -66,7 +66,9 @@ public class EditorService {
     }
 
     public List<InventoryItem> getAllItems() {
-        return databaseService.findAllItems(InventoryItem.class);
+        return databaseService.findItems("logistics", null, null, null).stream()
+                .map(InventoryItem.class::cast)
+                .toList();
     }
 
     /* Controller endpoints moved from EditorController into this service class */
@@ -154,8 +156,9 @@ public class EditorService {
     }
 
     public void deleteItem(String itemCode) {
-        databaseService.findLatestItem(InventoryItem.class, itemCode).ifPresent(toDelete -> {
-            boolean deleted = databaseService.deleteItem(InventoryItem.class, toDelete.getId());
+        databaseService.findLatestItem("logistics", itemCode).ifPresent(item -> {
+            InventoryItem toDelete = InventoryItem.class.cast(item);
+            boolean deleted = databaseService.deleteItem(toDelete);
             // Broadcast/log the removal through the centralized LogService
             logService.removeItemLog(toDelete);
             if (deleted) {

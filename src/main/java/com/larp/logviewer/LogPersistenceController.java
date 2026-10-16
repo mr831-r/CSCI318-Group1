@@ -16,6 +16,6 @@ public class LogPersistenceController {
 
     @PutMapping("/database/logs")
     public LogEntry persistLog(@RequestBody LogEntry entry) {
-        return databaseService.createItem(entry);
+        return LogEntry.class.cast(databaseService.createItem(entry));
     }
 }

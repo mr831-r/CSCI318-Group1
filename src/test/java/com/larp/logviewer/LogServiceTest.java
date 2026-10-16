@@ -44,8 +44,8 @@ class LogServiceTest {
         LogEntry earlier = logAt(LocalDateTime.of(2026, 10, 13, 23, 59));
         LogEntry latest = logAt(LocalDateTime.of(2026, 10, 14, 23, 59));
         LogEntry outsideRange = logAt(LocalDateTime.of(2026, 10, 15, 0, 0));
-        when(databaseService.findAllItems(LogEntry.class))
-                .thenReturn(List.of(earlier, latest, outsideRange));
+        when(databaseService.findItems("log", null, LocalDate.of(2026, 10, 14), LocalDate.of(2026, 10, 14)))
+                .thenReturn(List.of(latest));
 
         List<ILogEntry> result = new LogService(databaseService, RestClient.builder(), "http://localhost:48484")
                 .findLogs(LocalDate.of(2026, 10, 14), LocalDate.of(2026, 10, 14));

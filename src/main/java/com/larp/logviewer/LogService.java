@@ -47,10 +47,11 @@ public class LogService {
     }
 
     public List<ILogEntry> findLogs(LocalDate start, LocalDate end) {
-        return databaseService.findAllItems(LogEntry.class).stream()
-                .filter(entry -> start == null || !entry.getTimestamp().toLocalDate().isBefore(start))
-                .filter(entry -> end == null || !entry.getTimestamp().toLocalDate().isAfter(end))
-                .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
+        return databaseService.findItems("log", null, start, end).stream()
+                .map(LogEntry.class::cast)
+                .sorted(Comparator.comparing(
+                        LogEntry::getTimestamp,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(ILogEntry.class::cast)
                 .collect(Collectors.toList());
     }
@@ -125,7 +126,7 @@ public class LogService {
             // If printing fails for any reason, continue to persist the log
         }
 
-        LogEntry persisted = databaseService.createItem(logEntry);
+        LogEntry persisted = LogEntry.class.cast(databaseService.createItem(logEntry));
 
         // Notify SSE subscribers of the new log entry
         notifyEmitters(persisted);

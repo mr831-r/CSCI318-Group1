@@ -49,21 +49,13 @@ public class ShippingService {
             return Optional.empty();
         }
 
-        databaseService.findLatestItem(InventoryItem.class, request.getItemCode())
-                .ifPresent(existing -> databaseService.updateItemFields(
-                        InventoryItem.class,
-                        existing.getId(),
-                        item -> {
-                            item.setStatus("ARRIVED");
-                            if (request.getQuantity() != null) {
-                                item.setQuantity(request.getQuantity());
-                            }
-                            if (request.getRequestedDate() != null) {
-                                item.setDate(request.getRequestedDate());
-                            }
-                        }));
+        InventoryItem incoming = new InventoryItem();
+        incoming.setStatus("ARRIVED");
+        incoming.setQuantity(request.getQuantity());
+        incoming.setDate(request.getRequestedDate());
+        databaseService.updateLatestItem("logistics", request.getItemCode(), incoming);
 
-        ShippingRequest saved = databaseService.createItem(request);
+        ShippingRequest saved = ShippingRequest.class.cast(databaseService.createItem(request));
         logService.recordShippingConfirmation(request.getItemCode());
         int quantityDelta = request.getQuantity() == null ? 0 : request.getQuantity();
         StockEvent event = new StockEvent(
@@ -83,7 +75,7 @@ public class ShippingService {
     }
 
     public List<ShippingRequest> getShippingRequests() {
-        return databaseService.findAllItems(ShippingRequest.class).stream()
+        return databaseService.findItems("shipping", null, null, null).stream()
                 .map(ShippingRequest.class::cast)
                 .toList();
     }

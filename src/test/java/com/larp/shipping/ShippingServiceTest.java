@@ -14,7 +14,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,16 +50,19 @@ class ShippingServiceTest {
         request.setQuantity(7);
         request.setRequestedDate(LocalDate.of(2026, 9, 16));
         item.setId(1L);
-        when(databaseService.findLatestItem(InventoryItem.class, "ITEM-1")).thenReturn(Optional.of(item));
+        when(databaseService.updateLatestItem(eq("logistics"), eq("ITEM-1"), any(InventoryItem.class)))
+                .thenAnswer(invocation -> {
+                    InventoryItem incoming = invocation.getArgument(2);
+                    item.updateFrom(incoming);
+                    return Optional.of(item);
+                });
         when(databaseService.createItem(request)).thenReturn(request);
 
         Optional<IShippingRequest> result = new ShippingService(databaseService, logService, streamBridge)
                 .confirmArrival(request);
 
         assertTrue(result.isPresent());
-        ArgumentCaptor<Consumer<InventoryItem>> updateCaptor = ArgumentCaptor.forClass(Consumer.class);
-        verify(databaseService).updateItemFields(eq(InventoryItem.class), eq(1L), updateCaptor.capture());
-        updateCaptor.getValue().accept(item);
+        verify(databaseService).updateLatestItem(eq("logistics"), eq("ITEM-1"), any(InventoryItem.class));
         assertEquals("ARRIVED", item.getStatus());
         assertEquals(7, item.getQuantity());
         assertEquals(LocalDate.of(2026, 9, 16), item.getDate());

@@ -48,7 +48,7 @@ Requirement 12. Continuously match available stock to outstanding shipping reque
 | AI Assistant | Command line user input | *UNKNOWN* | Coordinate external API calls, gather data from database microservice | OpenAI external API |
 
 # Interfaces
-The DatabaseHostService within the Database microservice contains lists of references to objects that implement the IDatabaseItem interface (using generics). The lists can then be queried using various operations (Add, Read, Remove, Update) from external microservices. The external microservices must specify a filter on the query (in the form of a name which must be specified in the IDatabaseItem implementation) in order to gain information from the database in their implemented format.
+The DatabaseHostService stores entries whose domain classes implement the shared IDatabaseItem interface. Database operations accept and return IDatabaseItem rather than declaring a separate method-level generic type for each operation. Implementations provide a filter name and item code so external services can query, update, and remove the appropriate entries.
 
 # Data Ownership
 | Microservice | Data Entities | Value Objects |

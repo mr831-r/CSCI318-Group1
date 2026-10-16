@@ -27,7 +27,7 @@ public class DatabaseController {
 
     @PutMapping
     public InventoryItem createInventoryItem(@RequestBody InventoryItem item) {
-        return databaseService.createItem(item);
+        return InventoryItem.class.cast(databaseService.createItem(item));
     }
 
     @PutMapping("/{filter}")
@@ -37,7 +37,7 @@ public class DatabaseController {
         if (item.getItemCode() == null || item.getItemCode().isBlank()) {
             item.setItemCode(filter);
         }
-        return databaseService.createItem(item);
+        return InventoryItem.class.cast(databaseService.createItem(item));
     }
 
     @GetMapping("/{filter}")
@@ -47,24 +47,22 @@ public class DatabaseController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam(value = "end", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        return databaseService.findItems(InventoryItem.class, filter, start, end);
+        return databaseService.findItems("logistics", filter, start, end).stream()
+                .map(InventoryItem.class::cast)
+                .toList();
     }
 
     @PostMapping("/{filter}")
     public InventoryItem updateLatestInventoryItem(
             @PathVariable String filter,
             @RequestBody InventoryItem incoming) {
-        return databaseService.findLatestItem(InventoryItem.class, filter)
-                .flatMap(existing -> databaseService.updateItem(
-                        InventoryItem.class,
-                        existing.getId(),
-                        incoming))
+        return databaseService.updateLatestItem("logistics", filter, incoming)
+                .map(InventoryItem.class::cast)
                 .orElse(null);
     }
 
     @DeleteMapping("/{filter}")
     public void deleteLatestInventoryItem(@PathVariable String filter) {
-        databaseService.findLatestItem(InventoryItem.class, filter)
-                .ifPresent(item -> databaseService.deleteItem(InventoryItem.class, item.getId()));
+        databaseService.deleteLatestItem("logistics", filter);
     }
 }

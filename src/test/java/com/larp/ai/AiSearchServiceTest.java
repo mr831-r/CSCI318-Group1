@@ -33,7 +33,7 @@ class AiSearchServiceTest {
         DatabaseService databaseService = mock(DatabaseService.class);
         LogService logService = mock(LogService.class);
         StreamBridge streamBridge = mock(StreamBridge.class);
-        when(databaseService.findItems(InventoryItem.class, null, null, null)).thenReturn(List.of());
+        when(databaseService.findItems("logistics", null, null, null)).thenReturn(List.of());
         when(streamBridge.send(anyString(), any(Object.class))).thenReturn(true);
         AiSearchService service = new AiSearchService(databaseService, logService, streamBridge);
         AIRequest request = new AIRequest();
