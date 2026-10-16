@@ -1,10 +1,22 @@
 package com.larp.database;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.larp.editor.InventoryItem;
+import com.larp.logviewer.LogEntry;
+import com.larp.shipping.ShippingRequest;
+
 import java.time.LocalDate;
 
 /**
  * Common fields and update behavior required by generic database operations.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
+@JsonSubTypes({
+        @JsonSubTypes.Type(InventoryItem.class),
+        @JsonSubTypes.Type(LogEntry.class),
+        @JsonSubTypes.Type(ShippingRequest.class)
+})
 public interface IDatabaseItem {
 
     Long getId();

@@ -108,6 +108,7 @@ public class ShippingService {
     private static InventoryItem quantityUpdate(int quantity) {
         InventoryItem update = new InventoryItem();
         update.setQuantity(quantity);
+        update.setName(null);
         return update;
     }
 

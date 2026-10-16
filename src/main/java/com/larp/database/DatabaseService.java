@@ -5,6 +5,16 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.metamodel.EntityType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -13,6 +23,8 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RestController
+@RequestMapping("/database")
 public class DatabaseService {
 
     @PersistenceContext
@@ -61,6 +73,16 @@ public class DatabaseService {
                         || filterName.equals(item.getFilterName()))
                 .filter(item -> itemCode == null || itemCode.isBlank()
                         || itemCode.equals(item.getItemCode()))
+                .filter(item -> start == null || (item.getDate() != null && !item.getDate().isBefore(start)))
+                .filter(item -> end == null || (item.getDate() != null && !item.getDate().isAfter(end)))
+                .toList();
+    }
+
+    public List<IDatabaseItem> findItemsByFilter(String filter, LocalDate start, LocalDate end) {
+        return findAllItems().stream()
+                .filter(item -> filter == null || filter.isBlank()
+                        || filter.equals(item.getFilterName())
+                        || filter.equals(item.getItemCode()))
                 .filter(item -> start == null || (item.getDate() != null && !item.getDate().isBefore(start)))
                 .filter(item -> end == null || (item.getDate() != null && !item.getDate().isAfter(end)))
                 .toList();
@@ -118,5 +140,42 @@ public class DatabaseService {
         return findLatestItem(filterName, itemCode)
                 .map(this::deleteItem)
                 .orElse(false);
+    }
+
+    @PutMapping
+    @Transactional
+    public IDatabaseItem createItemEndpoint(@RequestBody IDatabaseItem item) {
+        return createItem(item);
+    }
+
+    @PutMapping("/{filter}")
+    @Transactional
+    public IDatabaseItem createItemWithFilterEndpoint(
+            @PathVariable String filter,
+            @RequestBody IDatabaseItem item) {
+        return createItem(item);
+    }
+
+    @GetMapping("/{filter}")
+    public List<IDatabaseItem> readItemsEndpoint(
+            @PathVariable String filter,
+            @RequestParam(value = "start", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam(value = "end", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        return findItemsByFilter(filter, start, end);
+    }
+
+    @PostMapping("/{filter}")
+    @Transactional
+    public IDatabaseItem updateLatestItemEndpoint(
+            @PathVariable String filter,
+            @RequestBody IDatabaseItem incoming) {
+        return updateLatestItem(null, filter, incoming).orElse(null);
+    }
+
+    @DeleteMapping("/{filter}")
+    public void deleteLatestItemEndpoint(@PathVariable String filter) {
+        deleteLatestItem(null, filter);
     }
 }
