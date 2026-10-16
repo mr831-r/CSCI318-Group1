@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "shipping_requests")
-public class ShippingRequest implements IDatabaseItem {
+public class ShippingRequest implements IShippingRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,6 +49,11 @@ public class ShippingRequest implements IDatabaseItem {
         return itemCode;
     }
 
+    @Override
+    public LocalDate getDate() {
+        return requestedDate;
+    }
+
     public void setItemCode(String itemCode) {
         this.itemCode = itemCode;
     }
@@ -83,5 +88,27 @@ public class ShippingRequest implements IDatabaseItem {
 
     public void setRequestedDate(LocalDate requestedDate) {
         this.requestedDate = requestedDate;
+    }
+
+    @Override
+    public void updateFrom(IDatabaseItem incoming) {
+        if (!(incoming instanceof IShippingRequest request)) {
+            throw new IllegalArgumentException("Shipping requests can only be updated from shipping requests");
+        }
+        if (request.getItemCode() != null) {
+            setItemCode(request.getItemCode());
+        }
+        if (request.getDestination() != null) {
+            setDestination(request.getDestination());
+        }
+        if (request.getQuantity() != null) {
+            setQuantity(request.getQuantity());
+        }
+        if (request.getStatus() != null) {
+            setStatus(request.getStatus());
+        }
+        if (request.getRequestedDate() != null) {
+            setRequestedDate(request.getRequestedDate());
+        }
     }
 }

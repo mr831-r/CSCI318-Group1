@@ -1,8 +1,7 @@
 package com.larp.shipping;
 
 import com.larp.database.DatabaseService;
-import com.larp.database.InventoryItem;
-import com.larp.database.InventoryItem;
+import com.larp.editor.InventoryItem;
 import com.larp.events.StockEvent;
 import com.larp.logviewer.LogService;
 import org.apache.kafka.streams.kstream.KStream;
@@ -45,23 +44,24 @@ public class ShippingService {
     }
 
     @Transactional
-    public Optional<ShippingRequest> confirmArrival(ShippingRequest request) {
+    public Optional<IShippingRequest> confirmArrival(ShippingRequest request) {
         if (request == null || request.getItemCode() == null || request.getItemCode().isBlank()) {
             return Optional.empty();
         }
 
-        List<InventoryItem> matchingItems = databaseService.findItems(request.getItemCode(), null, null); // TODO: Should be using generic IDatabaseItem implementations from database service.
-        if (!matchingItems.isEmpty()) {
-            InventoryItem incoming = new InventoryItem();
-            incoming.setStatus("ARRIVED");
-            if (request.getQuantity() != null) {
-                incoming.setQuantity(request.getQuantity());
-            }
-            if (request.getRequestedDate() != null) {
-                incoming.setDate(request.getRequestedDate());
-            }
-            databaseService.updateLatestItem(request.getItemCode(), incoming); // TODO: Should not be using a custom function from database service. All functions like this must be made in this entity or Should be using generic IDatabaseItem implementations from database service.
-        }
+        databaseService.findLatestItem(InventoryItem.class, request.getItemCode())
+                .ifPresent(existing -> databaseService.updateItemFields(
+                        InventoryItem.class,
+                        existing.getId(),
+                        item -> {
+                            item.setStatus("ARRIVED");
+                            if (request.getQuantity() != null) {
+                                item.setQuantity(request.getQuantity());
+                            }
+                            if (request.getRequestedDate() != null) {
+                                item.setDate(request.getRequestedDate());
+                            }
+                        }));
 
         ShippingRequest saved = databaseService.createItem(request);
         logService.recordShippingConfirmation(request.getItemCode());
@@ -101,11 +101,9 @@ public class ShippingService {
                         Materialized.as("stock-levels-store"))
                 .toStream()
                 .foreach((itemId, level) -> {
-                    InventoryItem update = new InventoryItem();
-                    update.setQuantity(level);
                     InventoryItem persisted = databaseRestClient.post()
                             .uri("/database/{itemId}", itemId)
-                            .body(update)
+                            .body(quantityUpdate(level))
                             .retrieve()
                             .body(InventoryItem.class);
                     if (persisted == null) {
@@ -113,6 +111,12 @@ public class ShippingService {
                                 "Database service did not update inventory for item " + itemId);
                     }
                 });
+    }
+
+    private static InventoryItem quantityUpdate(int quantity) {
+        InventoryItem update = new InventoryItem();
+        update.setQuantity(quantity);
+        return update;
     }
 
     static int applyStockEvent(int total, StockEvent event) {
@@ -125,7 +129,7 @@ public class ShippingService {
 
     /* Controller endpoints moved from ShippingController into this service class */
     @PutMapping
-    public ShippingRequest confirmArrivalEndpoint(@RequestBody ShippingRequest request) {
+    public IShippingRequest confirmArrivalEndpoint(@RequestBody ShippingRequest request) {
         return confirmArrival(request).orElse(null);
     }
 

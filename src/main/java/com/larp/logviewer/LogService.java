@@ -1,7 +1,7 @@
 package com.larp.logviewer;
 
 import com.larp.database.DatabaseService;
-import com.larp.database.InventoryItem;
+import com.larp.editor.InventoryItem;
 import com.larp.events.AiEvent;
 import com.larp.events.ItemEvent;
 import com.larp.events.StockEvent;
@@ -46,12 +46,12 @@ public class LogService {
         this.databaseRestClient = restClientBuilder.baseUrl(databaseBaseUrl).build();
     }
 
-    public List<LogEntry> findLogs(LocalDate start, LocalDate end) {
+    public List<ILogEntry> findLogs(LocalDate start, LocalDate end) {
         return databaseService.findAllItems(LogEntry.class).stream()
                 .filter(entry -> start == null || !entry.getTimestamp().toLocalDate().isBefore(start))
                 .filter(entry -> end == null || !entry.getTimestamp().toLocalDate().isAfter(end))
                 .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
-                .map(LogEntry.class::cast)
+                .map(ILogEntry.class::cast)
                 .collect(Collectors.toList());
     }
 
@@ -179,7 +179,7 @@ public class LogService {
     /* Controller endpoints moved from LogViewerController into this service class */
 
     @GetMapping
-    public List<LogEntry> getLogs(@RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+    public List<ILogEntry> getLogs(@RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
                                    @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
         return findLogs(start, end);
     }

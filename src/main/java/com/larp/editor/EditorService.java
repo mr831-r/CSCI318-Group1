@@ -1,8 +1,6 @@
 package com.larp.editor;
 
 import com.larp.database.DatabaseService;
-import com.larp.database.InventoryItem;
-import com.larp.database.InventoryItem;
 import com.larp.events.ItemEvent;
 import com.larp.logviewer.LogService;
 import org.springframework.cloud.stream.function.StreamBridge;
@@ -68,7 +66,7 @@ public class EditorService {
     }
 
     public List<InventoryItem> getAllItems() {
-        return databaseService.findAllItems();
+        return databaseService.findAllItems(InventoryItem.class);
     }
 
     /* Controller endpoints moved from EditorController into this service class */
@@ -156,16 +154,14 @@ public class EditorService {
     }
 
     public void deleteItem(String itemCode) {
-        List<InventoryItem> matches = databaseService.findItems(itemCode, null, null);
-        if (!matches.isEmpty()) {
-            InventoryItem toDelete = matches.get(matches.size() - 1);
-            boolean deleted = databaseService.deleteLatestItem(itemCode);
+        databaseService.findLatestItem(InventoryItem.class, itemCode).ifPresent(toDelete -> {
+            boolean deleted = databaseService.deleteItem(InventoryItem.class, toDelete.getId());
             // Broadcast/log the removal through the centralized LogService
             logService.removeItemLog(toDelete);
             if (deleted) {
                 publishItemEvent("ITEM_REMOVED", toDelete.getItemCode());
             }
-        }
+        });
     }
 
     private void publishItemEvent(String type, String itemId) {

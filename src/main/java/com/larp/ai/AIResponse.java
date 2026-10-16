@@ -1,6 +1,6 @@
 package com.larp.ai;
 
-import com.larp.database.IInventoryItem;
+import com.larp.editor.IInventoryItem;
 
 import java.time.LocalDate;
 import java.util.List;

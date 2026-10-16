@@ -1,35 +1,20 @@
 package com.larp.database;
 
-import com.larp.logviewer.ILogEntry;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @Service
-@RestController
-@RequestMapping("/database")
-
-// TODO: Should only have generic functions that use IDatabaseItem.
 public class DatabaseService {
 
     @PersistenceContext
@@ -58,10 +43,53 @@ public class DatabaseService {
         return Optional.ofNullable(em.find(itemType, id));
     }
 
-    public <T extends IDatabaseItem> List<T> findItems(Class<T> itemType, String itemCode) {
+    public <T extends IDatabaseItem> List<T> findItems(Class<T> itemType, String filter) {
+        return findItems(itemType, filter, null, null);
+    }
+
+    public <T extends IDatabaseItem> List<T> findItems(
+            Class<T> itemType,
+            String filter,
+            LocalDate start,
+            LocalDate end) {
         return findAllItems(itemType).stream()
-                .filter(item -> itemCode == null || itemCode.equals(item.getItemCode()))
+                .filter(item -> filter == null || filter.isBlank()
+                        || filter.equals(item.getItemCode())
+                        || filter.equals(item.getFilterName()))
+                .filter(item -> start == null || (item.getDate() != null && !item.getDate().isBefore(start)))
+                .filter(item -> end == null || (item.getDate() != null && !item.getDate().isAfter(end)))
+                .sorted(Comparator
+                        .comparing(IDatabaseItem::getDate, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(IDatabaseItem::getId, Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
+    }
+
+    public <T extends IDatabaseItem> Optional<T> findLatestItem(Class<T> itemType, String filter) {
+        return findItems(itemType, filter).stream().findFirst();
+    }
+
+    @Transactional
+    public <T extends IDatabaseItem> Optional<T> updateItemFields(
+            Class<T> itemType,
+            Long id,
+            Consumer<T> updater) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        T item = em.find(itemType, id);
+        if (item == null) {
+            return Optional.empty();
+        }
+        updater.accept(item);
+        return Optional.of(em.merge(item));
+    }
+
+    @Transactional
+    public <T extends IDatabaseItem> Optional<T> updateItem(Class<T> itemType, Long id, T incoming) {
+        if (incoming == null) {
+            throw new IllegalArgumentException("Incoming database item cannot be null");
+        }
+        return updateItemFields(itemType, id, item -> item.updateFrom(incoming));
     }
 
     @Transactional
@@ -75,140 +103,5 @@ public class DatabaseService {
         }
         em.remove(item);
         return true;
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
-    public List<IInventoryItem> findItems(String filter, LocalDate start, LocalDate end) {
-        List<IInventoryItem> matchingItems = findAllItems(InventoryItem.class).stream()
-                .filter(item -> filter == null || filter.equals(item.getItemCode()))
-                .map(IInventoryItem.class::cast)
-                .toList();
-        if (start != null && end != null) {
-            List<IInventoryItem> history = matchingItems.stream()
-                    .filter(item -> !item.getDate().isBefore(start) && !item.getDate().isAfter(end))
-                    .sorted(Comparator.comparing(IInventoryItem::getDate).reversed())
-                    .toList();
-            if (!history.isEmpty()) {
-                return history;
-            }
-        }
-
-        return matchingItems.stream()
-                .sorted(Comparator.comparing(IInventoryItem::getDate))
-                .toList();
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
-    public List<IInventoryItem> findAllItems() {
-        return findAllItems(InventoryItem.class).stream()
-                .map(IInventoryItem.class::cast)
-                .toList();
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
-    public List<IInventoryItem> findByDateBetween(LocalDate start, LocalDate end) {
-        TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date BETWEEN :start AND :end", InventoryItem.class);
-        q.setParameter("start", start);
-        q.setParameter("end", end);
-        return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
-    public List<IInventoryItem> findByDateGreaterThanEqual(LocalDate start) {
-        TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date >= :start", InventoryItem.class);
-        q.setParameter("start", start);
-        return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
-    public List<IInventoryItem> findByDateLessThanEqual(LocalDate end) {
-        TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE i.date <= :end", InventoryItem.class);
-        q.setParameter("end", end);
-        return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem. Otherwise it should be in editor service
-    public List<IInventoryItem> findByDescriptionContainingIgnoreCase(String description) {
-        TypedQuery<InventoryItem> q = em.createQuery("SELECT i FROM InventoryItem i WHERE LOWER(i.description) LIKE LOWER(CONCAT('%', :desc, '%')) OR LOWER(i.name) LIKE LOWER(CONCAT('%', :desc, '%'))", InventoryItem.class);
-        q.setParameter("desc", description);
-        return q.getResultList().stream().map(IInventoryItem.class::cast).toList();
-    }
-
-    // TODO: Should not exist. Remove this and use pre-existing fuctions.
-    @Transactional
-    public Optional<IInventoryItem> updateLatestItem(String filter, IInventoryItem incoming) {
-        List<IInventoryItem> existingItems = findItems(filter, null, null);
-        if (existingItems.isEmpty()) {
-            return Optional.empty();
-        }
-
-        IInventoryItem existing = existingItems.get(existingItems.size() - 1);
-        existing.setDescription(incoming.getDescription() != null ? incoming.getDescription() : existing.getDescription());
-        existing.setQuantity(incoming.getQuantity() != null ? incoming.getQuantity() : existing.getQuantity());
-        existing.setStatus(incoming.getStatus() != null ? incoming.getStatus() : existing.getStatus());
-        existing.setDate(incoming.getDate() != null ? incoming.getDate() : existing.getDate());
-        existing.setPayslipReference(incoming.getPayslipReference() != null ? incoming.getPayslipReference() : existing.getPayslipReference());
-
-        IInventoryItem merged = createItem(existing);
-        return Optional.of(merged);
-    }
-
-    // TODO: Should not exist. Remove this and use pre-existing fuctions.
-    @Transactional
-    public boolean deleteLatestItem(String filter) {
-        List<IInventoryItem> items = findItems(filter, null, null);
-        if (items.isEmpty()) {
-            return false;
-        }
-
-        IInventoryItem toRemove = items.get(items.size() - 1);
-        return deleteItem(InventoryItem.class, toRemove.getId());
-    }
-
-    // TODO: Should not exist. Remove this and use pre-existing fuctions.
-    @PutMapping
-    public IInventoryItem createItemEndpoint(@RequestBody IInventoryItem item) {
-        return createItem(item);
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem.
-    @PutMapping("/{filter}")
-    public IInventoryItem createItemWithFilterEndpoint(@PathVariable String filter, @RequestBody IInventoryItem item) {
-        if (item == null) {
-            item = new InventoryItem();
-        }
-        if (item.getItemCode() == null || item.getItemCode().isBlank()) {
-            item.setItemCode(filter);
-        }
-        return createItem(item);
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem.
-    @GetMapping("/{filter}")
-    public List<IInventoryItem> readItemsEndpoint(
-            @PathVariable String filter,
-            @RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-            @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
-        return findItems(filter, start, end);
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem.
-    @PostMapping("/{filter}")
-    @Transactional
-    public IInventoryItem updateItemEndpoint(@PathVariable String filter, @RequestBody IInventoryItem incoming) {
-        return updateLatestItem(filter, incoming).orElse(null);
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not InventoryItem.
-    @DeleteMapping("/{filter}")
-    public void deleteItemEndpoint(@PathVariable String filter) {
-        deleteLatestItem(filter);
-    }
-
-    // TODO: Should be using IDatabaseItem generics, not ILogEntry. Otherwise it should be in logging service, or should not exist at all.
-    @Transactional
-    @PutMapping("/logs")
-    public ILogEntry createLogEntryEndpoint(@RequestBody ILogEntry entry) {
-        return createItem(entry);
     }
 }

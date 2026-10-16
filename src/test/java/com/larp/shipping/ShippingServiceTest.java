@@ -1,7 +1,7 @@
 package com.larp.shipping;
 
 import com.larp.database.DatabaseService;
-import com.larp.database.InventoryItem;
+import com.larp.editor.InventoryItem;
 import com.larp.events.StockEvent;
 import com.larp.logviewer.LogService;
 import org.junit.jupiter.api.Test;
@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,18 +50,20 @@ class ShippingServiceTest {
         request.setItemCode("ITEM-1");
         request.setQuantity(7);
         request.setRequestedDate(LocalDate.of(2026, 9, 16));
-        when(databaseService.findItems("ITEM-1", null, null)).thenReturn(List.of(item));
+        item.setId(1L);
+        when(databaseService.findLatestItem(InventoryItem.class, "ITEM-1")).thenReturn(Optional.of(item));
         when(databaseService.createItem(request)).thenReturn(request);
 
         Optional<IShippingRequest> result = new ShippingService(databaseService, logService, streamBridge)
                 .confirmArrival(request);
 
         assertTrue(result.isPresent());
-        ArgumentCaptor<InventoryItem> updateCaptor = ArgumentCaptor.forClass(InventoryItem.class);
-        verify(databaseService).updateLatestItem(eq("ITEM-1"), updateCaptor.capture());
-        assertEquals("ARRIVED", updateCaptor.getValue().getStatus());
-        assertEquals(7, updateCaptor.getValue().getQuantity());
-        assertEquals(LocalDate.of(2026, 9, 16), updateCaptor.getValue().getDate());
+        ArgumentCaptor<Consumer<InventoryItem>> updateCaptor = ArgumentCaptor.forClass(Consumer.class);
+        verify(databaseService).updateItemFields(eq(InventoryItem.class), eq(1L), updateCaptor.capture());
+        updateCaptor.getValue().accept(item);
+        assertEquals("ARRIVED", item.getStatus());
+        assertEquals(7, item.getQuantity());
+        assertEquals(LocalDate.of(2026, 9, 16), item.getDate());
         verify(databaseService).createItem(request);
         verify(logService).recordShippingConfirmation("ITEM-1");
         ArgumentCaptor<Message<StockEvent>> eventCaptor = ArgumentCaptor.forClass(Message.class);

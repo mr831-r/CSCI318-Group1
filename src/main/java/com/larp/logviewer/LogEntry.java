@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "log_entries")
-public class LogEntry implements IDatabaseItem {
+public class LogEntry implements ILogEntry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -58,7 +58,28 @@ public class LogEntry implements IDatabaseItem {
         return timestamp;
     }
 
+    @Override
+    public java.time.LocalDate getDate() {
+        return timestamp == null ? null : timestamp.toLocalDate();
+    }
+
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
+    }
+
+    @Override
+    public void updateFrom(IDatabaseItem incoming) {
+        if (!(incoming instanceof ILogEntry entry)) {
+            throw new IllegalArgumentException("Log entries can only be updated from log entries");
+        }
+        if (entry.getMessage() != null) {
+            setMessage(entry.getMessage());
+        }
+        if (entry.getLevel() != null) {
+            setLevel(entry.getLevel());
+        }
+        if (entry.getTimestamp() != null) {
+            setTimestamp(entry.getTimestamp());
+        }
     }
 }

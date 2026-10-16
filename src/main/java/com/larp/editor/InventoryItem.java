@@ -1,13 +1,15 @@
-package com.larp.database;
+package com.larp.editor;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.larp.database.IDatabaseItem;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
-// TODO: Should be in editor service/folder.
 @Entity
 @Table(name = "inventory_items")
-public class InventoryItem implements IDatabaseItem {
+@JsonDeserialize(as = InventoryItem.class)
+public class InventoryItem implements IInventoryItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -105,5 +107,33 @@ public class InventoryItem implements IDatabaseItem {
 
     public void setPayslipReference(String payslipReference) {
         this.payslipReference = payslipReference;
+    }
+
+    @Override
+    public void updateFrom(IDatabaseItem incoming) {
+        if (!(incoming instanceof IInventoryItem item)) {
+            throw new IllegalArgumentException("Inventory items can only be updated from inventory items");
+        }
+        if (item.getItemCode() != null) {
+            setItemCode(item.getItemCode());
+        }
+        if (item.getName() != null) {
+            setName(item.getName());
+        }
+        if (item.getDescription() != null) {
+            setDescription(item.getDescription());
+        }
+        if (item.getQuantity() != null) {
+            setQuantity(item.getQuantity());
+        }
+        if (item.getStatus() != null) {
+            setStatus(item.getStatus());
+        }
+        if (item.getDate() != null) {
+            setDate(item.getDate());
+        }
+        if (item.getPayslipReference() != null) {
+            setPayslipReference(item.getPayslipReference());
+        }
     }
 }

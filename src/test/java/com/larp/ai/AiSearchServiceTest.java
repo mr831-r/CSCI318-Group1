@@ -1,6 +1,7 @@
 package com.larp.ai;
 
 import com.larp.database.DatabaseService;
+import com.larp.editor.InventoryItem;
 import com.larp.events.AiEvent;
 import com.larp.logviewer.LogService;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ class AiSearchServiceTest {
         DatabaseService databaseService = mock(DatabaseService.class);
         LogService logService = mock(LogService.class);
         StreamBridge streamBridge = mock(StreamBridge.class);
-        when(databaseService.findAllItems()).thenReturn(List.of());
+        when(databaseService.findItems(InventoryItem.class, null, null, null)).thenReturn(List.of());
         when(streamBridge.send(anyString(), any(Object.class))).thenReturn(true);
         AiSearchService service = new AiSearchService(databaseService, logService, streamBridge);
         AIRequest request = new AIRequest();

@@ -5,6 +5,8 @@ import com.larp.logviewer.LogEntry;
 import com.larp.logviewer.ILogEntry;
 import com.larp.shipping.ShippingRequest;
 import com.larp.shipping.IShippingRequest;
+import com.larp.editor.InventoryItem;
+import com.larp.editor.IInventoryItem;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;

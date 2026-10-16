@@ -1,7 +1,8 @@
 package com.larp.ai;
 
 import com.larp.database.DatabaseService;
-import com.larp.database.IInventoryItem;
+import com.larp.editor.IInventoryItem;
+import com.larp.editor.InventoryItem;
 import com.larp.events.AiEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -196,16 +197,9 @@ public class AiSearchService {
     }
 
     private List<IInventoryItem> findCandidates(LocalDate startDate, LocalDate endDate) {
-        if (startDate != null && endDate != null) {
-            return databaseService.findByDateBetween(startDate, endDate);
-        }
-        if (startDate != null) {
-            return databaseService.findByDateGreaterThanEqual(startDate);
-        }
-        if (endDate != null) {
-            return databaseService.findByDateLessThanEqual(endDate);
-        }
-        return databaseService.findAllItems();
+        return databaseService.findItems(InventoryItem.class, null, startDate, endDate).stream()
+                .map(IInventoryItem.class::cast)
+                .toList();
     }
 
     private int scoreItem(IInventoryItem item, String query) {
