@@ -44,7 +44,7 @@ public class ShippingService {
     }
 
     @Transactional
-    public Optional<IShippingRequest> confirmArrival(ShippingRequest request) {
+    public Optional<ShippingRequest> confirmArrival(ShippingRequest request) {
         if (request == null || request.getItemCode() == null || request.getItemCode().isBlank()) {
             return Optional.empty();
         }
@@ -121,7 +121,7 @@ public class ShippingService {
 
     /* Controller endpoints moved from ShippingController into this service class */
     @PutMapping
-    public IShippingRequest confirmArrivalEndpoint(@RequestBody ShippingRequest request) {
+    public ShippingRequest confirmArrivalEndpoint(@RequestBody ShippingRequest request) {
         return confirmArrival(request).orElse(null);
     }
 

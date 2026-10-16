@@ -46,13 +46,12 @@ public class LogService {
         this.databaseRestClient = restClientBuilder.baseUrl(databaseBaseUrl).build();
     }
 
-    public List<ILogEntry> findLogs(LocalDate start, LocalDate end) {
+    public List<LogEntry> findLogs(LocalDate start, LocalDate end) {
         return databaseService.findItems("log", null, start, end).stream()
                 .map(LogEntry.class::cast)
                 .sorted(Comparator.comparing(
                         LogEntry::getTimestamp,
                         Comparator.nullsLast(Comparator.reverseOrder())))
-                .map(ILogEntry.class::cast)
                 .collect(Collectors.toList());
     }
 
@@ -180,7 +179,7 @@ public class LogService {
     /* Controller endpoints moved from LogViewerController into this service class */
 
     @GetMapping
-    public List<ILogEntry> getLogs(@RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+    public List<LogEntry> getLogs(@RequestParam(value = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
                                    @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
         return findLogs(start, end);
     }

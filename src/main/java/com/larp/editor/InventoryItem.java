@@ -1,6 +1,5 @@
 package com.larp.editor;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.larp.database.IDatabaseItem;
 import jakarta.persistence.*;
 
@@ -8,8 +7,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "inventory_items")
-@JsonDeserialize(as = InventoryItem.class)
-public class InventoryItem implements IInventoryItem {
+public class InventoryItem implements IDatabaseItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -111,7 +109,7 @@ public class InventoryItem implements IInventoryItem {
 
     @Override
     public void updateFrom(IDatabaseItem incoming) {
-        if (!(incoming instanceof IInventoryItem item)) {
+        if (!(incoming instanceof InventoryItem item)) {
             throw new IllegalArgumentException("Inventory items can only be updated from inventory items");
         }
         if (item.getItemCode() != null) {

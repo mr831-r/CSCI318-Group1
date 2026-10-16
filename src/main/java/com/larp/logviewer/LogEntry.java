@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "log_entries")
-public class LogEntry implements ILogEntry {
+public class LogEntry implements IDatabaseItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -69,7 +69,7 @@ public class LogEntry implements ILogEntry {
 
     @Override
     public void updateFrom(IDatabaseItem incoming) {
-        if (!(incoming instanceof ILogEntry entry)) {
+        if (!(incoming instanceof LogEntry entry)) {
             throw new IllegalArgumentException("Log entries can only be updated from log entries");
         }
         if (entry.getMessage() != null) {

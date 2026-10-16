@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "shipping_requests")
-public class ShippingRequest implements IShippingRequest {
+public class ShippingRequest implements IDatabaseItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -92,7 +92,7 @@ public class ShippingRequest implements IShippingRequest {
 
     @Override
     public void updateFrom(IDatabaseItem incoming) {
-        if (!(incoming instanceof IShippingRequest request)) {
+        if (!(incoming instanceof ShippingRequest request)) {
             throw new IllegalArgumentException("Shipping requests can only be updated from shipping requests");
         }
         if (request.getItemCode() != null) {

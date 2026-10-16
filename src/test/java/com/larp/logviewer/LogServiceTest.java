@@ -32,7 +32,7 @@ class LogServiceTest {
         when(databaseService.createItem(any(LogEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
         LogService service = new LogService(databaseService, RestClient.builder(), "http://localhost:48484");
 
-        ILogEntry result = service.addLogEntry(Map.of("message", "Import complete", "level", "INFO"));
+        LogEntry result = service.addLogEntry(Map.of("message", "Import complete", "level", "INFO"));
 
         assertEquals("Import complete", result.getMessage());
         assertEquals("INFO", result.getLevel());
@@ -41,13 +41,11 @@ class LogServiceTest {
     @Test
     void findLogsFiltersByInclusiveDateRangeAndSortsNewestFirst() {
         DatabaseService databaseService = mock(DatabaseService.class);
-        LogEntry earlier = logAt(LocalDateTime.of(2026, 10, 13, 23, 59));
         LogEntry latest = logAt(LocalDateTime.of(2026, 10, 14, 23, 59));
-        LogEntry outsideRange = logAt(LocalDateTime.of(2026, 10, 15, 0, 0));
         when(databaseService.findItems("log", null, LocalDate.of(2026, 10, 14), LocalDate.of(2026, 10, 14)))
                 .thenReturn(List.of(latest));
 
-        List<ILogEntry> result = new LogService(databaseService, RestClient.builder(), "http://localhost:48484")
+        List<LogEntry> result = new LogService(databaseService, RestClient.builder(), "http://localhost:48484")
                 .findLogs(LocalDate.of(2026, 10, 14), LocalDate.of(2026, 10, 14));
 
         assertEquals(List.of(latest), result);

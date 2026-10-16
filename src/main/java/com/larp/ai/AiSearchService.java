@@ -1,7 +1,7 @@
 package com.larp.ai;
 
 import com.larp.database.DatabaseService;
-import com.larp.editor.IInventoryItem;
+import com.larp.editor.InventoryItem;
 import com.larp.events.AiEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,11 +49,11 @@ public class AiSearchService {
         this.streamBridge = streamBridge;
     }
 
-    public List<IInventoryItem> search(String query, LocalDate startDate, LocalDate endDate) {
+    public List<InventoryItem> search(String query, LocalDate startDate, LocalDate endDate) {
         return search(query, startDate, endDate, null, null, null);
     }
 
-    public List<IInventoryItem> search(String query, LocalDate startDate, LocalDate endDate, String apiKey, String model, String providerUrl) {
+    public List<InventoryItem> search(String query, LocalDate startDate, LocalDate endDate, String apiKey, String model, String providerUrl) {
         String effectiveApiKey = resolveApiKey(apiKey);
         if (effectiveApiKey != null && !effectiveApiKey.isBlank()) {
             return searchWithLlm(query, startDate, endDate, effectiveApiKey, model, providerUrl);
@@ -64,7 +64,7 @@ public class AiSearchService {
     /* Controller endpoints moved from AiController into this service class */
     @GetMapping
     public AIResponse getAllAvailableItems() {
-        List<IInventoryItem> items = search("", null, null);
+        List<InventoryItem> items = search("", null, null);
         return buildResponse("all inventory", items, null, null, null, null, null);
     }
 
@@ -82,7 +82,7 @@ public class AiSearchService {
         String model = Optional.ofNullable(req.getModel()).filter(value -> !value.isBlank()).orElse(null);
         String providerUrl = Optional.ofNullable(req.getProviderUrl()).filter(value -> !value.isBlank()).orElse(null);
 
-        List<IInventoryItem> matches = search(query, startDate, endDate, apiKey, model, providerUrl);
+        List<InventoryItem> matches = search(query, startDate, endDate, apiKey, model, providerUrl);
 
         // Record AI search query in logs (L5)
         try {
@@ -115,8 +115,8 @@ public class AiSearchService {
         return summary.toString();
     }
 
-    private List<IInventoryItem> searchLocally(String query, LocalDate startDate, LocalDate endDate) {
-        List<IInventoryItem> candidates = findCandidates(startDate, endDate);
+    private List<InventoryItem> searchLocally(String query, LocalDate startDate, LocalDate endDate) {
+        List<InventoryItem> candidates = findCandidates(startDate, endDate);
         String normalizedQuery = Optional.ofNullable(query)
                 .map(String::trim)
                 .filter(value -> !value.isEmpty())
@@ -128,7 +128,7 @@ public class AiSearchService {
         }
 
         List<ScoredItem> scored = new ArrayList<>();
-        for (IInventoryItem item : candidates) {
+        for (InventoryItem item : candidates) {
             int score = scoreItem(item, normalizedQuery);
             // Include all items in scoring stage (don't filter out zero-score items early)
             scored.add(new ScoredItem(item, score));
@@ -141,8 +141,8 @@ public class AiSearchService {
                 .toList();
     }
 
-    private List<IInventoryItem> searchWithLlm(String query, LocalDate startDate, LocalDate endDate, String apiKey, String model, String providerUrl) {
-        List<IInventoryItem> candidates = findCandidates(startDate, endDate);
+    private List<InventoryItem> searchWithLlm(String query, LocalDate startDate, LocalDate endDate, String apiKey, String model, String providerUrl) {
+        List<InventoryItem> candidates = findCandidates(startDate, endDate);
         if (candidates.isEmpty()) {
             return List.of();
         }
@@ -195,13 +195,13 @@ public class AiSearchService {
         }
     }
 
-    private List<IInventoryItem> findCandidates(LocalDate startDate, LocalDate endDate) {
+    private List<InventoryItem> findCandidates(LocalDate startDate, LocalDate endDate) {
         return databaseService.findItems("logistics", null, startDate, endDate).stream()
-                .map(IInventoryItem.class::cast)
+                .map(InventoryItem.class::cast)
                 .toList();
     }
 
-    private int scoreItem(IInventoryItem item, String query) {
+    private int scoreItem(InventoryItem item, String query) {
         int score = 0;
         String name = Optional.ofNullable(item.getName()).orElse("").toLowerCase(Locale.ROOT);
         String description = Optional.ofNullable(item.getDescription()).orElse("").toLowerCase(Locale.ROOT);
@@ -244,13 +244,13 @@ public class AiSearchService {
         return score;
     }
 
-    private String buildContextPrompt(List<IInventoryItem> items, String query, LocalDate startDate, LocalDate endDate) {
+    private String buildContextPrompt(List<InventoryItem> items, String query, LocalDate startDate, LocalDate endDate) {
         StringBuilder context = new StringBuilder();
         context.append("Query: ").append(query == null ? "" : query).append("\n");
         context.append("Date window: ").append(startDate == null ? "*" : startDate).append(" to ").append(endDate == null ? "*" : endDate).append("\n\n");
         context.append("Inventory records:\n");
         int count = 0;
-        for (IInventoryItem item : items) {
+        for (InventoryItem item : items) {
             if (count >= MAX_RESULTS) {
                 break;
             }
@@ -314,7 +314,7 @@ public class AiSearchService {
 
     private AIResponse buildResponse(
             String query,
-            List<IInventoryItem> items,
+            List<InventoryItem> items,
             LocalDate startDate,
             LocalDate endDate,
             String apiKey,
@@ -345,6 +345,6 @@ public class AiSearchService {
         }
     }
 
-    private record ScoredItem(IInventoryItem item, int score) {
+    private record ScoredItem(InventoryItem item, int score) {
     }
 }

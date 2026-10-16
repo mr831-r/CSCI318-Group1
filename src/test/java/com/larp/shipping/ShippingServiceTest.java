@@ -58,7 +58,7 @@ class ShippingServiceTest {
                 });
         when(databaseService.createItem(request)).thenReturn(request);
 
-        Optional<IShippingRequest> result = new ShippingService(databaseService, logService, streamBridge)
+        Optional<ShippingRequest> result = new ShippingService(databaseService, logService, streamBridge)
                 .confirmArrival(request);
 
         assertTrue(result.isPresent());

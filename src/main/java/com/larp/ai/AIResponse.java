@@ -1,6 +1,6 @@
 package com.larp.ai;
 
-import com.larp.editor.IInventoryItem;
+import com.larp.editor.InventoryItem;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -11,7 +11,7 @@ public class AIResponse {
     private LocalDate endDate;
     private int count;
     private String summary;
-    private List<IInventoryItem> results;
+    private List<InventoryItem> results;
     private boolean llmConfigured;
     private String model;
     private String providerUrl;
@@ -58,11 +58,11 @@ public class AIResponse {
         this.summary = summary;
     }
 
-    public List<IInventoryItem> getResults() {
+    public List<InventoryItem> getResults() {
         return results;
     }
 
-    public void setResults(List<IInventoryItem> results) {
+    public void setResults(List<InventoryItem> results) {
         this.results = results;
     }
 

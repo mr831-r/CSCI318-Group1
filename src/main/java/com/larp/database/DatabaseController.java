@@ -1,6 +1,7 @@
 package com.larp.database;
 
 import com.larp.editor.InventoryItem;
+import com.larp.logviewer.LogEntry;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +29,11 @@ public class DatabaseController {
     @PutMapping
     public InventoryItem createInventoryItem(@RequestBody InventoryItem item) {
         return InventoryItem.class.cast(databaseService.createItem(item));
+    }
+
+    @PutMapping("/logs")
+    public LogEntry createLogEntry(@RequestBody LogEntry entry) {
+        return LogEntry.class.cast(databaseService.createItem(entry));
     }
 
     @PutMapping("/{filter}")
