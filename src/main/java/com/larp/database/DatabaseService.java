@@ -171,7 +171,7 @@ public class DatabaseService {
     public IDatabaseItem updateLatestItemEndpoint(
             @PathVariable String filter,
             @RequestBody IDatabaseItem incoming) {
-        return updateLatestItem(null, filter, incoming).orElse(null);
+        return updateLatestItem(incoming.getFilterName(), filter, incoming).orElse(null);
     }
 
     @DeleteMapping("/{filter}")

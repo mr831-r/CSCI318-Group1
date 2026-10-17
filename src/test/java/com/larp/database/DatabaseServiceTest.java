@@ -122,6 +122,42 @@ class DatabaseServiceTest {
         assertTrue(databaseService.findItem("logistics", updated.getId()).isEmpty());
     }
 
+    @Test
+    void databaseUpdateEndpointTargetsTheIncomingItemsType() {
+        InventoryItem inventoryItem = inventoryItem("ITEM-SHARED", LocalDate.of(2026, 10, 14), 5);
+        databaseService.createItem(inventoryItem);
+
+        ShippingRequest shippingRequest = new ShippingRequest();
+        shippingRequest.setItemCode("ITEM-SHARED");
+        shippingRequest.setDestination("Test destination");
+        shippingRequest.setQuantity(2);
+        shippingRequest.setStatus("PENDING");
+        shippingRequest.setRequestedDate(LocalDate.of(2026, 10, 14));
+        databaseService.createItem(shippingRequest);
+
+        InventoryItem update = new InventoryItem();
+        update.setQuantity(8);
+        update.setStatus("ARRIVED");
+        InventoryItem response = RestClient.builder()
+                .baseUrl("http://localhost:" + serverPort)
+                .build()
+                .post()
+                .uri("/database/ITEM-SHARED")
+                .body(update)
+                .retrieve()
+                .body(InventoryItem.class);
+
+        assertEquals(8, response.getQuantity());
+        assertEquals(
+                8,
+                InventoryItem.class.cast(databaseService.findLatestItem("logistics", "ITEM-SHARED").orElseThrow())
+                        .getQuantity());
+        assertEquals(
+                "PENDING",
+                ShippingRequest.class.cast(databaseService.findLatestItem("shipping", "ITEM-SHARED").orElseThrow())
+                        .getStatus());
+    }
+
     private InventoryItem inventoryItem(String itemCode, LocalDate date, int quantity) {
         InventoryItem item = new InventoryItem();
         item.setItemCode(itemCode);

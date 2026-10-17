@@ -6,9 +6,9 @@ import com.larp.events.StockEvent;
 import com.larp.logviewer.LogService;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Materialized;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpStatus;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
@@ -29,6 +29,8 @@ import java.util.function.Consumer;
 @RestController
 @RequestMapping("/shipping")
 public class ShippingService {
+
+    private static final int UNINITIALIZED_STOCK_LEVEL = Integer.MIN_VALUE;
 
     private final DatabaseService databaseService;
     private final LogService logService;
@@ -51,10 +53,14 @@ public class ShippingService {
 
         InventoryItem incoming = new InventoryItem();
         incoming.setStatus("ARRIVED");
-        incoming.setQuantity(request.getQuantity());
         incoming.setDate(request.getRequestedDate());
-        databaseService.updateLatestItem("logistics", request.getItemCode(), incoming);
+        if (databaseService.updateLatestItem("logistics", request.getItemCode(), incoming).isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Unknown inventory item code: " + request.getItemCode());
+        }
 
+        request.setStatus("ARRIVED");
         ShippingRequest saved = ShippingRequest.class.cast(databaseService.createItem(request));
         logService.recordShippingConfirmation(request.getItemCode());
         int quantityDelta = request.getQuantity() == null ? 0 : request.getQuantity();
@@ -81,28 +87,29 @@ public class ShippingService {
     }
 
     @Bean
-    public Consumer<KStream<String, StockEvent>> stockLevels(
-            RestClient.Builder restClientBuilder,
-            @Value("${larp.database.base-url:http://localhost:48484}") String databaseBaseUrl) {
-        RestClient databaseRestClient = restClientBuilder.baseUrl(databaseBaseUrl).build();
+    public Consumer<KStream<String, StockEvent>> stockLevels() {
         return stream -> stream
                 .groupByKey()
                 .aggregate(
-                        () -> 0,
-                        (itemId, event, total) -> applyStockEvent(total, event),
+                        () -> UNINITIALIZED_STOCK_LEVEL,
+                        (itemId, event, total) -> applyStockEvent(
+                                total == UNINITIALIZED_STOCK_LEVEL ? getCurrentQuantity(itemId) : total,
+                                event),
                         Materialized.as("stock-levels-store"))
                 .toStream()
                 .foreach((itemId, level) -> {
-                    InventoryItem persisted = databaseRestClient.post()
-                            .uri("/database/{itemId}", itemId)
-                            .body(quantityUpdate(level))
-                            .retrieve()
-                            .body(InventoryItem.class);
-                    if (persisted == null) {
+                    if (databaseService.updateLatestItem("logistics", itemId, quantityUpdate(level)).isEmpty()) {
                         throw new IllegalStateException(
                                 "Database service did not update inventory for item " + itemId);
                     }
                 });
+    }
+
+    private int getCurrentQuantity(String itemId) {
+        return databaseService.findLatestItem("logistics", itemId)
+                .map(InventoryItem.class::cast)
+                .map(item -> item.getQuantity())
+                .orElse(0);
     }
 
     private static InventoryItem quantityUpdate(int quantity) {

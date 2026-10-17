@@ -9,18 +9,20 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 class ShippingServiceTest {
@@ -44,10 +46,12 @@ class ShippingServiceTest {
         when(streamBridge.send(eq("stockEvents-out-0"), any(Message.class))).thenReturn(true);
         InventoryItem item = new InventoryItem();
         item.setItemCode("ITEM-1");
+        item.setQuantity(4);
         item.setStatus("SHIPPING");
         ShippingRequest request = new ShippingRequest();
         request.setItemCode("ITEM-1");
         request.setQuantity(7);
+        request.setStatus("PENDING");
         request.setRequestedDate(LocalDate.of(2026, 9, 16));
         item.setId(1L);
         when(databaseService.updateLatestItem(eq("logistics"), eq("ITEM-1"), any(InventoryItem.class)))
@@ -64,8 +68,9 @@ class ShippingServiceTest {
         assertTrue(result.isPresent());
         verify(databaseService).updateLatestItem(eq("logistics"), eq("ITEM-1"), any(InventoryItem.class));
         assertEquals("ARRIVED", item.getStatus());
-        assertEquals(7, item.getQuantity());
+        assertEquals(4, item.getQuantity());
         assertEquals(LocalDate.of(2026, 9, 16), item.getDate());
+        assertEquals("ARRIVED", request.getStatus());
         verify(databaseService).createItem(request);
         verify(logService).recordShippingConfirmation("ITEM-1");
         ArgumentCaptor<Message<StockEvent>> eventCaptor = ArgumentCaptor.forClass(Message.class);
@@ -73,5 +78,27 @@ class ShippingServiceTest {
         assertEquals("STOCK_ARRIVED", eventCaptor.getValue().getPayload().type());
         assertEquals("ITEM-1", eventCaptor.getValue().getHeaders().get(KafkaHeaders.KEY));
         assertEquals(7, eventCaptor.getValue().getPayload().quantityDelta());
+    }
+
+    @Test
+    void confirmArrivalReportsUnknownInventoryItemAsInvalid() {
+        DatabaseService databaseService = mock(DatabaseService.class);
+        LogService logService = mock(LogService.class);
+        StreamBridge streamBridge = mock(StreamBridge.class);
+        when(databaseService.updateLatestItem(eq("logistics"), eq("MISSING"), any(InventoryItem.class)))
+                .thenReturn(Optional.empty());
+
+        ShippingRequest request = new ShippingRequest();
+        request.setItemCode("MISSING");
+        request.setQuantity(3);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> new ShippingService(databaseService, logService, streamBridge).confirmArrival(request));
+
+        assertEquals(400, exception.getStatusCode().value());
+        verify(databaseService, never()).createItem(any());
+        verify(logService, never()).recordShippingConfirmation(any());
+        verify(streamBridge, never()).send(any(String.class), any(Object.class));
     }
 }
