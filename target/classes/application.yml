@@ -30,7 +30,7 @@ spring:
             configuration:
               default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
               default.value.serde: org.apache.kafka.common.serialization.Serdes$IntegerSerde
-              spring.json.value.default.type: com.larp.events.StockEvent
+              spring.json.value.default.type: com.larp.shipping.StockEvent
           bindings:
             stockLevels-in-0:
               consumer:
