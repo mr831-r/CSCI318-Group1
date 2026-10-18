@@ -2,7 +2,6 @@ package com.larp.ai;
 
 import com.larp.database.DatabaseService;
 import com.larp.editor.InventoryItem;
-import com.larp.events.AiEvent;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.cloud.stream.function.StreamBridge;

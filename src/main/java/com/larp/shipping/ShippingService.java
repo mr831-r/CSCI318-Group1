@@ -2,7 +2,6 @@ package com.larp.shipping;
 
 import com.larp.database.DatabaseService;
 import com.larp.editor.InventoryItem;
-import com.larp.events.StockEvent;
 import com.larp.logviewer.LogService;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Materialized;

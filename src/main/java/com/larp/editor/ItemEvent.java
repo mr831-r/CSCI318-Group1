@@ -1,4 +1,4 @@
-package com.larp.events;
+package com.larp.editor;
 
 import java.time.Instant;
 

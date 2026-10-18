@@ -1,10 +1,11 @@
 package com.larp.logviewer;
 
+import com.larp.ai.AiEvent;
 import com.larp.database.DatabaseService;
 import com.larp.editor.InventoryItem;
-import com.larp.events.AiEvent;
-import com.larp.events.ItemEvent;
-import com.larp.events.StockEvent;
+import com.larp.editor.ItemEvent;
+import com.larp.shipping.StockEvent;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;

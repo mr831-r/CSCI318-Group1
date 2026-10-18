@@ -1,4 +1,4 @@
-package com.larp.events;
+package com.larp.ai;
 
 import java.time.Instant;
 

@@ -1,7 +1,6 @@
 package com.larp.editor;
 
 import com.larp.database.DatabaseService;
-import com.larp.events.ItemEvent;
 import com.larp.logviewer.LogService;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.junit.jupiter.api.Test;

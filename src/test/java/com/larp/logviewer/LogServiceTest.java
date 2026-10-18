@@ -1,9 +1,10 @@
 package com.larp.logviewer;
 
+import com.larp.ai.AiEvent;
 import com.larp.database.DatabaseService;
-import com.larp.events.AiEvent;
-import com.larp.events.ItemEvent;
-import com.larp.events.StockEvent;
+import com.larp.editor.ItemEvent;
+import com.larp.shipping.StockEvent;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;

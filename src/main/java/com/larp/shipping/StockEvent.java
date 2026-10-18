@@ -1,4 +1,4 @@
-package com.larp.events;
+package com.larp.shipping;
 
 import java.time.Instant;
 
