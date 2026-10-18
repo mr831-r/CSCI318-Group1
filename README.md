@@ -21,7 +21,8 @@ docker compose up -d
 ./mvnw spring-boot:run
 ```
 
-Linux
+Linux:
+Ensure docker has started with `sudo systemctl start docker`. Then run:
 ```bash
 sudo docker compose up -d
 ./mvnw spring-boot:run
