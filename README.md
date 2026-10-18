@@ -12,17 +12,25 @@ This project implements a simplified Spring Boot version of the LARP specificati
 
 ## Run the project
 
-This project requires Java 21. Set it explicitly before running Maven:
+This project requires Java 21, docker and docker-compose.
+To run the application, run the following depending on your system:
 
+Windows:
 ```bash
 docker compose up -d
+./mvnw spring-boot:run
+```
+
+Linux
+```bash
+sudo docker compose up -d
 ./mvnw spring-boot:run
 ```
 
 Then open:
 
 - http://localhost:48484/ for the service status page
-- http://localhost:48484/console for the interactive AI, editor, and log console
+- http://localhost:48484/console for the interactive UI
 - http://localhost:48484/health for the health endpoint
 - http://localhost:48484/h2-console for the in-memory database inspection page
 
@@ -37,12 +45,6 @@ The app uses an in-memory H2 database with the following settings:
 This is configured in `application.properties`, and the console servlet is registered explicitly for the Spring Boot 4 / Jakarta servlet stack so the page resolves correctly.
 
 ### Kafka
-
-Kafka event messaging uses a local Apache Kafka broker. Start it before the application:
-
-```bash
-docker compose up -d
-```
 
 The broker defaults to `localhost:9092`; override it with `KAFKA_BROKERS` when needed. The Database REST base URL used by Kafka consumers defaults to `http://localhost:48484` and can be overridden with `DATABASE_SERVICE_URL`.
 
