@@ -56,55 +56,7 @@ Events are published after their corresponding existing operation succeeds:
 
 The Log Viewer persists consumed events by calling `PUT /database/logs`; Kafka consumers do not write directly to H2. Stock event records are keyed by item code. The Kafka Streams stock-level processor aggregates arrivals and dispatches and updates inventory through the existing `POST /database/{filter}` endpoint.
 
-## API endpoints and descriptions
-
-### Root and health
-- `GET /` - redirects to the console
-- `GET /health` - health check endpoint returning service status
-- `GET /console` - browser-based console for AI, editor, and log interaction
-- `GET /h2-console` - H2 in-memory database console
-
-### Database service
-- `PUT /database` - create a new inventory item record
-  - Request body: `InventoryItem` with `itemCode`, `description`, `quantity`, `status`, `date`, and optional `payslipReference`
-- `GET /database/{filter}` - read items matching the supplied filter (item code or description keyword)
-- `GET /database/{filter}?start=YYYY-MM-DD&end=YYYY-MM-DD` - return historical inventory records within a date range
-- `POST /database/{filter}` - update the most recent matching inventory record
-- `DELETE /database/{filter}` - remove the most recent matching inventory record
-- `PUT /database/logs` - persist a log entry sent by Kafka event consumers
-
-### Database editor service
-- `PUT /editor` - add or update a single inventory item after validation
-  - Validates required fields: item code, description, quantity, status, and date
-- `PUT /editor/prepopulate` - bulk insert inventory records; if empty body is sent, it seeds realistic sample data automatically
-- `GET /editor` - fetch all current inventory items
-- `POST /editor/prepopulate` - create a small set of fake inventory items for demos and testing
-- `DELETE /editor` - delete an item using a JSON body such as `{ "itemCode": "ITEM-1001" }`
-- `DELETE /editor/{itemCode}` - delete an item by its item code path value
-
-### Log viewer service
-- `GET /log` - list all log entries
-- `GET /log?start=YYYY-MM-DD&end=YYYY-MM-DD` - filter log entries by date range
-- `PUT /log` - create a generic log event
-  - Request body example: `{ "message": "System event", "level": "INFO" }`
-- `PUT /log/item` - record a database item action event
-- `DELETE /log/item` - record an item removal event
-- `PUT /log/shipping` - record a shipping-related event
-  - Request body example: `{ "itemCode": "ITEM-1001", "status": "ARRIVED" }`
-- `PUT /log/ai` - record an AI search event
-  - Request body example: `{ "query": "iron sword" }`
-
-### Shipping manager service
-- `PUT /shipping` - confirm that a shipment has arrived and update the item status to `ARRIVED`
-  - Request body includes item code, shipping firm/origin, quantity received, status, and arrival date
-  - This endpoint matches the original specification requirement: the shipping API reports that stock has arrived and the database item should reflect the arrival state
-- `GET /shipping` - list all shipping arrival confirmations
-
-### AI assistant service
-- `GET /ai` - return all inventory items as a basic AI-style stock view
-- `PUT /ai` - perform an AI-style database search using a natural language request body and optional date bounds
-  - Request body example: `{ "query": "sword", "startDate": "2026-09-01", "endDate": "2026-09-10" }`
-- `POST /ai` - same as above, used for search-style interaction with the AI endpoint
+## TODO: Add endpoints and examples
 
 ## Workflow overview
 
@@ -119,5 +71,3 @@ The Log Viewer persists consumed events by calling `PUT /database/logs`; Kafka c
 ## Notes
 
 The app exposes a root endpoint at `/` and a health endpoint at `/health` so the default localhost page does not return a Whitelabel 404 when the service is running.
-
-The project intentionally keeps the architecture close to the provided logical design while remaining practical for a single Spring Boot application: JPA repositories, REST controllers, validation, Thymeleaf UI, and an H2 in-memory database.
