@@ -1,7 +1,9 @@
 package com.larp.shipping;
 
 import com.larp.database.DatabaseService;
+import com.larp.database.IDatabaseItem;
 import com.larp.editor.InventoryItem;
+import com.larp.editor.InventoryStatus;
 import com.larp.logviewer.LogService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -10,9 +12,9 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,17 +29,6 @@ import static org.mockito.Mockito.when;
 class ShippingServiceTest {
 
     @Test
-    void stockLevelAggregationAddsArrivalsAndSubtractsDispatches() {
-        StockEvent arrival = new StockEvent("STOCK_ARRIVED", "ITEM-1", 8, Instant.now());
-        StockEvent dispatch = new StockEvent("STOCK_DISPATCHED", "ITEM-1", 3, Instant.now());
-
-        int afterArrival = ShippingService.applyStockEvent(0, arrival);
-
-        assertEquals(8, afterArrival);
-        assertEquals(5, ShippingService.applyStockEvent(afterArrival, dispatch));
-    }
-
-    @Test
     void confirmArrivalUpdatesInventoryPersistsRequestAndLogsEvent() {
         DatabaseService databaseService = mock(DatabaseService.class);
         LogService logService = mock(LogService.class);
@@ -46,17 +37,19 @@ class ShippingServiceTest {
         InventoryItem item = new InventoryItem();
         item.setItemCode("ITEM-1");
         item.setQuantity(4);
-        item.setStatus("SHIPPING");
+        item.setStatus(InventoryStatus.SHIPPING);
+        item.setDate(LocalDate.of(2026, 9, 10));
         ShippingRequest request = new ShippingRequest();
         request.setItemCode("ITEM-1");
         request.setQuantity(7);
-        request.setStatus("PENDING");
+        request.setStatus(ShippingStatus.PENDING);
+        request.setDestination("North Camp");
         request.setRequestedDate(LocalDate.of(2026, 9, 16));
         item.setId(1L);
-        when(databaseService.updateLatestItem(eq("logistics"), eq("ITEM-1"), any(InventoryItem.class)))
+        when(databaseService.mutateLatestItem(eq("logistics"), eq("ITEM-1"), any()))
                 .thenAnswer(invocation -> {
-                    InventoryItem incoming = invocation.getArgument(2);
-                    item.updateFrom(incoming);
+                    Consumer<IDatabaseItem> update = invocation.getArgument(2);
+                    update.accept(item);
                     return Optional.of(item);
                 });
         when(databaseService.createItem(request)).thenReturn(request);
@@ -65,11 +58,11 @@ class ShippingServiceTest {
                 .confirmArrival(request);
 
         assertTrue(result.isPresent());
-        verify(databaseService).updateLatestItem(eq("logistics"), eq("ITEM-1"), any(InventoryItem.class));
-        assertEquals("ARRIVED", item.getStatus());
-        assertEquals(4, item.getQuantity());
+        verify(databaseService).mutateLatestItem(eq("logistics"), eq("ITEM-1"), any());
+        assertEquals(InventoryStatus.ARRIVED, item.getStatus());
+        assertEquals(11, item.getQuantity());
         assertEquals(LocalDate.of(2026, 9, 16), item.getDate());
-        assertEquals("ARRIVED", request.getStatus());
+        assertEquals(ShippingStatus.ARRIVED, request.getStatus());
         verify(databaseService).createItem(request);
         verify(logService).recordShippingConfirmation("ITEM-1");
         ArgumentCaptor<Message<StockEvent>> eventCaptor = ArgumentCaptor.forClass(Message.class);
@@ -84,18 +77,18 @@ class ShippingServiceTest {
         DatabaseService databaseService = mock(DatabaseService.class);
         LogService logService = mock(LogService.class);
         StreamBridge streamBridge = mock(StreamBridge.class);
-        when(databaseService.updateLatestItem(eq("logistics"), eq("MISSING"), any(InventoryItem.class)))
-                .thenReturn(Optional.empty());
-
         ShippingRequest request = new ShippingRequest();
         request.setItemCode("MISSING");
         request.setQuantity(3);
+        request.setDestination("Test destination");
+        request.setRequestedDate(LocalDate.of(2026, 9, 16));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> new ShippingService(databaseService, logService, streamBridge).confirmArrival(request));
 
         assertEquals(400, exception.getStatusCode().value());
+        verify(databaseService).mutateLatestItem(eq("logistics"), eq("MISSING"), any());
         verify(databaseService, never()).createItem(any());
         verify(logService, never()).recordShippingConfirmation(any());
         verify(streamBridge, never()).send(any(String.class), any(Object.class));

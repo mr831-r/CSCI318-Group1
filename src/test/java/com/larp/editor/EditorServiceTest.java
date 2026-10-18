@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,6 +20,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 
 class EditorServiceTest {
+
+    @Test
+    void statusOptionsComeFromInventoryStatusEnum() {
+        EditorService editorService = new EditorService(
+                mock(DatabaseService.class),
+                mock(LogService.class),
+                mock(StreamBridge.class));
+
+        assertEquals(List.of(InventoryStatus.values()), editorService.getInventoryStatuses());
+        assertEquals(InventoryStatus.AVAILABLE, InventoryStatus.fromValue("available"));
+        assertThrows(IllegalArgumentException.class, () -> InventoryStatus.fromValue("unknown"));
+    }
 
     @Test
     void seedSampleInventoryAddsExpectedRecords() {

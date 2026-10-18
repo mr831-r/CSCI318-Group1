@@ -25,8 +25,9 @@ public class InventoryItem implements IDatabaseItem {
     @Column(nullable = false)
     private Integer quantity;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private InventoryStatus status;
 
     @Column(nullable = false)
     private LocalDate date;
@@ -83,11 +84,11 @@ public class InventoryItem implements IDatabaseItem {
         this.quantity = quantity;
     }
 
-    public String getStatus() {
+    public InventoryStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(InventoryStatus status) {
         this.status = status;
     }
 

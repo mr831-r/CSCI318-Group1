@@ -1,7 +1,7 @@
 spring:
   cloud:
     function:
-      definition: logItemEvents;logAiEvents;logStockEvents;stockLevels
+      definition: logItemEvents;logAiEvents;logStockEvents
     stream:
       bindings:
         itemEvents-out-0:
@@ -19,23 +19,9 @@ spring:
         logStockEvents-in-0:
           destination: stock-events
           group: log-viewer
-        stockLevels-in-0:
-          destination: stock-events
       kafka:
         binder:
           brokers: ${KAFKA_BROKERS:localhost:9092}
-        streams:
-          binder:
-            applicationId: larp-stock-levels
-            configuration:
-              default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
-              default.value.serde: org.apache.kafka.common.serialization.Serdes$IntegerSerde
-              spring.json.value.default.type: com.larp.shipping.StockEvent
-          bindings:
-            stockLevels-in-0:
-              consumer:
-                keySerde: org.apache.kafka.common.serialization.Serdes$StringSerde
-                valueSerde: org.springframework.kafka.support.serializer.JsonSerde
 larp:
   database:
     base-url: ${DATABASE_SERVICE_URL:http://localhost:48484}

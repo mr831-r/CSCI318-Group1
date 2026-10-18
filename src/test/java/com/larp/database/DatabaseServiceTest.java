@@ -3,6 +3,8 @@ package com.larp.database;
 import com.larp.logviewer.LogEntry;
 import com.larp.shipping.ShippingRequest;
 import com.larp.editor.InventoryItem;
+import com.larp.editor.InventoryStatus;
+import com.larp.shipping.ShippingStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,7 +60,7 @@ class DatabaseServiceTest {
         inventoryItem.setName("Test item");
         inventoryItem.setDescription("Database persistence test");
         inventoryItem.setQuantity(2);
-        inventoryItem.setStatus("AVAILABLE");
+        inventoryItem.setStatus(InventoryStatus.AVAILABLE);
         inventoryItem.setDate(LocalDate.of(2026, 10, 14));
 
         LogEntry logEntry = new LogEntry();
@@ -70,7 +72,7 @@ class DatabaseServiceTest {
         shippingRequest.setItemCode("ITEM-DB-1");
         shippingRequest.setDestination("Test destination");
         shippingRequest.setQuantity(2);
-        shippingRequest.setStatus("PENDING");
+        shippingRequest.setStatus(ShippingStatus.PENDING);
         shippingRequest.setRequestedDate(LocalDate.of(2026, 10, 14));
 
         InventoryItem savedInventory = InventoryItem.class.cast(databaseService.createItem(inventoryItem));
@@ -109,13 +111,13 @@ class DatabaseServiceTest {
 
         InventoryItem update = new InventoryItem();
         update.setQuantity(8);
-        update.setStatus("ARRIVED");
+        update.setStatus(InventoryStatus.ARRIVED);
         InventoryItem updated = InventoryItem.class.cast(databaseService.updateLatestItem(
                 "logistics",
                 "ITEM-GENERIC",
                 update).orElseThrow());
         assertEquals(8, updated.getQuantity());
-        assertEquals("ARRIVED", updated.getStatus());
+        assertEquals(InventoryStatus.ARRIVED, updated.getStatus());
         assertEquals("Test item", updated.getName());
 
         assertTrue(databaseService.deleteItem(updated));
@@ -124,24 +126,32 @@ class DatabaseServiceTest {
 
     @Test
     void databaseUpdateEndpointTargetsTheIncomingItemsType() {
+        RestClient client = RestClient.builder()
+                .baseUrl("http://localhost:" + serverPort)
+                .build();
         InventoryItem inventoryItem = inventoryItem("ITEM-SHARED", LocalDate.of(2026, 10, 14), 5);
-        databaseService.createItem(inventoryItem);
+        client.put()
+                .uri("/database")
+                .body(inventoryItem)
+                .retrieve()
+                .body(InventoryItem.class);
 
         ShippingRequest shippingRequest = new ShippingRequest();
         shippingRequest.setItemCode("ITEM-SHARED");
         shippingRequest.setDestination("Test destination");
         shippingRequest.setQuantity(2);
-        shippingRequest.setStatus("PENDING");
+        shippingRequest.setStatus(ShippingStatus.PENDING);
         shippingRequest.setRequestedDate(LocalDate.of(2026, 10, 14));
-        databaseService.createItem(shippingRequest);
+        client.put()
+                .uri("/database")
+                .body(shippingRequest)
+                .retrieve()
+                .body(ShippingRequest.class);
 
         InventoryItem update = new InventoryItem();
         update.setQuantity(8);
-        update.setStatus("ARRIVED");
-        InventoryItem response = RestClient.builder()
-                .baseUrl("http://localhost:" + serverPort)
-                .build()
-                .post()
+        update.setStatus(InventoryStatus.ARRIVED);
+        InventoryItem response = client.post()
                 .uri("/database/ITEM-SHARED")
                 .body(update)
                 .retrieve()
@@ -153,7 +163,7 @@ class DatabaseServiceTest {
                 InventoryItem.class.cast(databaseService.findLatestItem("logistics", "ITEM-SHARED").orElseThrow())
                         .getQuantity());
         assertEquals(
-                "PENDING",
+                ShippingStatus.PENDING,
                 ShippingRequest.class.cast(databaseService.findLatestItem("shipping", "ITEM-SHARED").orElseThrow())
                         .getStatus());
     }
@@ -164,7 +174,7 @@ class DatabaseServiceTest {
         item.setName("Test item");
         item.setDescription("Generic database operation test");
         item.setQuantity(quantity);
-        item.setStatus("AVAILABLE");
+        item.setStatus(InventoryStatus.AVAILABLE);
         item.setDate(date);
         return item;
     }

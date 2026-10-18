@@ -205,7 +205,10 @@ public class AiSearchService {
         String name = Optional.ofNullable(item.getName()).orElse("").toLowerCase(Locale.ROOT);
         String description = Optional.ofNullable(item.getDescription()).orElse("").toLowerCase(Locale.ROOT);
         String itemCode = Optional.ofNullable(item.getItemCode()).orElse("").toLowerCase(Locale.ROOT);
-        String status = Optional.ofNullable(item.getStatus()).orElse("").toLowerCase(Locale.ROOT);
+        String status = Optional.ofNullable(item.getStatus())
+                .map(Enum::name)
+                .orElse("")
+                .toLowerCase(Locale.ROOT);
 
         if (name.contains(query)) {
             score += 7;

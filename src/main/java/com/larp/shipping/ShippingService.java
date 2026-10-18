@@ -2,11 +2,9 @@ package com.larp.shipping;
 
 import com.larp.database.DatabaseService;
 import com.larp.editor.InventoryItem;
+import com.larp.editor.InventoryStatus;
 import com.larp.logviewer.LogService;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Materialized;
 import org.springframework.cloud.stream.function.StreamBridge;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.support.MessageBuilder;
@@ -22,14 +20,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 @Service
 @RestController
 @RequestMapping("/shipping")
 public class ShippingService {
-
-    private static final int UNINITIALIZED_STOCK_LEVEL = Integer.MIN_VALUE;
 
     private final DatabaseService databaseService;
     private final LogService logService;
@@ -49,20 +44,35 @@ public class ShippingService {
         if (request == null || request.getItemCode() == null || request.getItemCode().isBlank()) {
             return Optional.empty();
         }
+        if (request.getQuantity() == null || request.getQuantity() < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Arrival quantity must be zero or more");
+        }
+        if (request.getRequestedDate() == null || request.getDestination() == null
+                || request.getDestination().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Arrival date and destination are required");
+        }
 
-        InventoryItem incoming = new InventoryItem();
-        incoming.setStatus("ARRIVED");
-        incoming.setDate(request.getRequestedDate());
-        if (databaseService.updateLatestItem("logistics", request.getItemCode(), incoming).isEmpty()) {
+        if (databaseService.mutateLatestItem("logistics", request.getItemCode(), item -> {
+            if (!(item instanceof InventoryItem inventoryItem)) {
+                throw new IllegalStateException("Logistics record is not an inventory item");
+            }
+            try {
+                inventoryItem.setQuantity(Math.addExact(inventoryItem.getQuantity(), request.getQuantity()));
+            } catch (ArithmeticException exception) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Arrival quantity exceeds supported stock");
+            }
+            inventoryItem.setStatus(InventoryStatus.ARRIVED);
+            inventoryItem.setDate(request.getRequestedDate());
+        }).isEmpty()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Unknown inventory item code: " + request.getItemCode());
         }
 
-        request.setStatus("ARRIVED");
+        request.setStatus(ShippingStatus.ARRIVED);
         ShippingRequest saved = ShippingRequest.class.cast(databaseService.createItem(request));
         logService.recordShippingConfirmation(request.getItemCode());
-        int quantityDelta = request.getQuantity() == null ? 0 : request.getQuantity();
+        int quantityDelta = request.getQuantity();
         StockEvent event = new StockEvent(
                 "STOCK_ARRIVED",
                 request.getItemCode(),
@@ -85,51 +95,12 @@ public class ShippingService {
                 .toList();
     }
 
-    @Bean
-    public Consumer<KStream<String, StockEvent>> stockLevels() {
-        return stream -> stream
-                .groupByKey()
-                .aggregate(
-                        () -> UNINITIALIZED_STOCK_LEVEL,
-                        (itemId, event, total) -> applyStockEvent(
-                                total == UNINITIALIZED_STOCK_LEVEL ? getCurrentQuantity(itemId) : total,
-                                event),
-                        Materialized.as("stock-levels-store"))
-                .toStream()
-                .foreach((itemId, level) -> {
-                    if (databaseService.updateLatestItem("logistics", itemId, quantityUpdate(level)).isEmpty()) {
-                        throw new IllegalStateException(
-                                "Database service did not update inventory for item " + itemId);
-                    }
-                });
-    }
-
-    private int getCurrentQuantity(String itemId) {
-        return databaseService.findLatestItem("logistics", itemId)
-                .map(InventoryItem.class::cast)
-                .map(item -> item.getQuantity())
-                .orElse(0);
-    }
-
-    private static InventoryItem quantityUpdate(int quantity) {
-        InventoryItem update = new InventoryItem();
-        update.setQuantity(quantity);
-        update.setName(null);
-        return update;
-    }
-
-    static int applyStockEvent(int total, StockEvent event) {
-        return switch (event.type()) {
-            case "STOCK_ARRIVED" -> total + event.quantityDelta();
-            case "STOCK_DISPATCHED" -> total - event.quantityDelta();
-            default -> total;
-        };
-    }
-
     /* Controller endpoints moved from ShippingController into this service class */
     @PutMapping
+    @Transactional
     public ShippingRequest confirmArrivalEndpoint(@RequestBody ShippingRequest request) {
-        return confirmArrival(request).orElse(null);
+        return confirmArrival(request).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.BAD_REQUEST, "A shipping request is required"));
     }
 
     @GetMapping

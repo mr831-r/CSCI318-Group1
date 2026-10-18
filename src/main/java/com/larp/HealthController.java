@@ -18,6 +18,7 @@ public class HealthController {
         response.put("endpoints", new String[]{
                 "/database",
                 "/editor",
+                "/editor/statuses",
                 "/log",
                 "/shipping",
                 "/ai",

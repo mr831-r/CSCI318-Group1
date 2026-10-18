@@ -1,6 +1,7 @@
 package com.larp.database;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.metamodel.EntityType;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 @Service
 @RestController
@@ -109,12 +111,24 @@ public class DatabaseService {
         if (incoming == null) {
             throw new IllegalArgumentException("Incoming database item cannot be null");
         }
+        return mutateLatestItem(filterName, itemCode, item -> item.updateFrom(incoming));
+    }
+
+    @Transactional
+    public Optional<IDatabaseItem> mutateLatestItem(
+            String filterName,
+            String itemCode,
+            Consumer<IDatabaseItem> update) {
+        if (update == null) {
+            throw new IllegalArgumentException("Database item update cannot be null");
+        }
         Optional<IDatabaseItem> existing = findLatestItem(filterName, itemCode);
         if (existing.isEmpty()) {
             return Optional.empty();
         }
         IDatabaseItem item = existing.get();
-        item.updateFrom(incoming);
+        em.refresh(item, LockModeType.PESSIMISTIC_WRITE);
+        update.accept(item);
         Object saved = em.merge(item);
         if (!(saved instanceof IDatabaseItem databaseItem)) {
             throw new IllegalStateException("Updated entity does not implement IDatabaseItem");

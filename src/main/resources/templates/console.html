@@ -97,7 +97,7 @@
             color: var(--muted);
         }
 
-        input, button, textarea {
+        input, button, textarea, select {
             width: 100%;
             margin-top: 6px;
             border-radius: 10px;
@@ -232,7 +232,9 @@
             </label>
             <label>
                 Status
-                <input id="editorStatus" type="text" value="available" placeholder="available or shipping" />
+                <select id="editorStatus">
+                    <option value="">Loading statuses...</option>
+                </select>
             </label>
             <label>
                 Date
@@ -261,10 +263,6 @@
             <label>
                 Quantity received
                 <input id="shippingQuantity" type="number" value="3" />
-            </label>
-            <label>
-                Arrival status
-                <input id="shippingStatus" type="text" value="ARRIVED" />
             </label>
             <label>
                 Arrival date
@@ -354,12 +352,6 @@
         document.getElementById('editorResult').textContent = JSON.stringify(data, null, 2);
     }
 
-    async function seedEditorItems() {
-        const res = await fetch(`${baseUrl}/editor/seed`, { method: 'PUT' });
-        const data = await res.json();
-        document.getElementById('editorResult').textContent = JSON.stringify(data, null, 2);
-    }
-
     async function prepopulateEditor() {
         const res = await fetch(`${baseUrl}/editor/prepopulate`, {
             method: 'PUT',
@@ -375,7 +367,6 @@
             itemCode: document.getElementById('shippingItemCode').value,
             destination: document.getElementById('shippingDestination').value,
             quantity: Number(document.getElementById('shippingQuantity').value),
-            status: document.getElementById('shippingStatus').value || 'ARRIVED',
             requestedDate: document.getElementById('shippingDate').value
         };
 
@@ -413,6 +404,22 @@
         const data = await res.json();
         document.getElementById('logResult').textContent = JSON.stringify(data, null, 2);
     }
+
+    async function loadInventoryStatuses() {
+        const response = await fetch(`${baseUrl}/editor/statuses`);
+        if (!response.ok) {
+            throw new Error(`Unable to load inventory statuses (${response.status})`);
+        }
+        const statuses = await response.json();
+        const select = document.getElementById('editorStatus');
+        select.replaceChildren(...statuses.map(status => new Option(status, status)));
+        select.value = 'AVAILABLE';
+    }
+
+    loadInventoryStatuses().catch(error => {
+        console.error(error);
+        document.getElementById('editorResult').textContent = error.message;
+    });
 
     // Start Server-Sent Events connection to receive real-time log updates
     try {

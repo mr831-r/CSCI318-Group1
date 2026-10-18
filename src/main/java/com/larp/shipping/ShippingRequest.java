@@ -22,8 +22,9 @@ public class ShippingRequest implements IDatabaseItem {
     @Column(nullable = false)
     private Integer quantity;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private ShippingStatus status;
 
     @Column(nullable = false)
     private LocalDate requestedDate;
@@ -74,11 +75,11 @@ public class ShippingRequest implements IDatabaseItem {
         this.quantity = quantity;
     }
 
-    public String getStatus() {
+    public ShippingStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ShippingStatus status) {
         this.status = status;
     }
 

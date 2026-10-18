@@ -53,18 +53,77 @@ Events are published after their corresponding existing operation succeeds:
 
 - `item-events` - editor item additions, updates, and removals; consumed by the Log Viewer
 - `ai-events` - AI searches; consumed by the Log Viewer
-- `stock-events` - shipping stock arrivals; consumed by the Log Viewer and stock-level processor
+- `stock-events` - shipping stock arrivals; consumed by the Log Viewer
 
-The Log Viewer persists consumed events by calling `PUT /database/logs`; Kafka consumers do not write directly to H2. Stock event records are keyed by item code. The Kafka Streams stock-level processor aggregates arrivals and dispatches and updates inventory through the existing `POST /database/{filter}` endpoint.
+The Log Viewer persists consumed events by calling `PUT /database/logs`; Kafka consumers do not write directly to H2. Stock event records are keyed by item code. The shipping endpoint updates inventory quantity synchronously before publishing its `STOCK_ARRIVED` audit event, so the stock change is immediately visible and does not depend on Kafka Streams processing.
 
-## TODO: Add endpoints and examples
+## API endpoints and examples
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `PUT` | `/database` or `/database/{filter}` | Create a database item |
+| `GET` | `/database/{filter}?start={date}&end={date}` | Read matching records; date bounds are optional |
+| `POST` | `/database/{itemCode}` | Update the latest matching item |
+| `DELETE` | `/database/{itemCode}` | Delete the latest matching item |
+| `PUT`, `GET`, `DELETE` | `/editor`, `/editor/prepopulate`, `/editor/{itemCode}` | Add/list/prepopulate/remove inventory |
+| `GET` | `/editor/statuses` | Get inventory statuses used by the console |
+| `GET`, `PUT`, `DELETE` | `/log`, `/log/item`, `/log/shipping`, `/log/ai` | Read and write logs |
+| `GET` | `/log/stream` | Subscribe to log updates using Server-Sent Events |
+| `PUT`, `GET` | `/shipping` | Confirm and list shipping arrivals |
+| `GET`, `PUT`, `POST` | `/ai` | List inventory or search it |
+| `GET` | `/health` | Check service health |
+
+Inventory statuses are `AVAILABLE`, `SHIPPING`, and `ARRIVED`. The console loads
+these options from `/editor/statuses`; status strings in requests are accepted
+case-insensitively. Shipping request statuses are `PENDING` and `ARRIVED`.
+
+### Examples
+
+Create or update inventory through the editor:
+
+```http
+PUT /editor
+Content-Type: application/json
+
+{
+  "itemCode": "ITEM-3001",
+  "name": "Steel spear",
+  "description": "Steel spear details",
+  "quantity": 7,
+  "status": "AVAILABLE",
+  "date": "2026-09-09",
+  "payslipReference": "manual-entry"
+}
+```
+
+Confirm an arrival. The received quantity is added to the current inventory
+quantity immediately; the inventory status becomes `ARRIVED`. A `STOCK_ARRIVED`
+event is also published to Kafka for audit logging.
+
+```http
+PUT /shipping
+Content-Type: application/json
+
+{
+  "itemCode": "ITEM-3001",
+  "destination": "North Camp",
+  "quantity": 3,
+  "requestedDate": "2026-09-09"
+}
+```
+
+Read an item's records in a date range:
+
+```http
+GET /database/ITEM-3001?start=2026-09-01&end=2026-09-30
+```
 
 ## Workflow overview
 
 ### Typical usage flow
 1. Seed data by sending an empty body to `PUT /editor/prepopulate`, or bulk load records via the same endpoint.
 2. Query inventory using `GET /database/{filter}` or the AI endpoint `PUT /ai`.
-3. Update or validate stock through `PUT /editor`.
+3. Update or validate inventory through `PUT /editor`.
 4. Confirm stock arrival with `PUT /shipping`.
 5. Inspect event history using `GET /log` and date-range filtering.
 6. Review service status with `GET /health` and the root status endpoint `GET /`.
