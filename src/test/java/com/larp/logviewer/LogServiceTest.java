@@ -82,7 +82,6 @@ class LogServiceTest {
         server.verify();
     }
 
-<<<<<<< HEAD
     @Test
     void agentEventConsumerWritesAgentLevelLogThroughDatabaseRestEndpoint() {
         RestClient.Builder builder = RestClient.builder();
@@ -100,8 +99,6 @@ class LogServiceTest {
         server.verify();
     }
 
-=======
->>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
     private LogEntry logAt(LocalDateTime timestamp) {
         LogEntry entry = new LogEntry();
         entry.setTimestamp(timestamp);

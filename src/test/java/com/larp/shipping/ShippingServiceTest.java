@@ -13,10 +13,7 @@ import org.springframework.messaging.Message;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-<<<<<<< HEAD
 import java.util.List;
-=======
->>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -97,7 +94,6 @@ class ShippingServiceTest {
         verify(logService, never()).recordShippingConfirmation(any());
         verify(streamBridge, never()).send(any(String.class), any(Object.class));
     }
-<<<<<<< HEAD
 
     @Test
     void createRequestStoresPendingRequestAndPublishesEvent() {
@@ -206,6 +202,3 @@ class ShippingServiceTest {
         });
     }
 }
-=======
-}
->>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7

@@ -1,0 +1,65 @@
+spring:
+  cloud:
+    function:
+<<<<<<< HEAD
+      definition: logItemEvents;logAiEvents;logStockEvents;logAgentEvents;agentStockEvents
+=======
+      definition: logItemEvents;logAiEvents;logStockEvents
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
+    stream:
+      bindings:
+        itemEvents-out-0:
+          destination: item-events
+        logItemEvents-in-0:
+          destination: item-events
+          group: log-viewer
+        aiEvents-out-0:
+          destination: ai-events
+        logAiEvents-in-0:
+          destination: ai-events
+          group: log-viewer
+        stockEvents-out-0:
+          destination: stock-events
+        logStockEvents-in-0:
+          destination: stock-events
+          group: log-viewer
+<<<<<<< HEAD
+        # AI agent audit trail (AgentEventPublisher -> LogService)
+        agentEvents-out-0:
+          destination: agent-events
+        logAgentEvents-in-0:
+          destination: agent-events
+          group: log-viewer
+        # AI agent reacting to stock arrivals, dispatches and new shipping requests (StockEventAgent)
+        agentStockEvents-in-0:
+          destination: stock-events
+          group: larp-agent
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+        bindings:
+          # Stock events are keyed by item code (a String); the binder's default key serializer is for byte[].
+          stockEvents-out-0:
+            producer:
+              configuration:
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+larp:
+  database:
+    base-url: ${DATABASE_SERVICE_URL:http://localhost:48484}
+  ai:
+    # LLM used by the AI agent (POST /ai/chat). Without an API key the app still runs; keyword search at /ai works.
+    provider: ${AI_PROVIDER:gemini}            # gemini | openai | anthropic
+    api-key: ${AI_API_KEY:}                    # falls back to GEMINI_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY
+    model: ${AI_MODEL:}                        # default per provider: gemini-2.5-flash, gpt-4.1-mini, claude-haiku-5-5
+    base-url: ${AI_BASE_URL:}                  # optional, for OpenAI-compatible servers such as Ollama
+    max-tool-calls: 10                         # tool calls the model may chain for one message
+    memory-messages: 20                        # messages remembered per conversation
+    autonomous-review: true                    # let the LLM review each stock event (rule-based check always runs)
+=======
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+larp:
+  database:
+    base-url: ${DATABASE_SERVICE_URL:http://localhost:48484}
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7

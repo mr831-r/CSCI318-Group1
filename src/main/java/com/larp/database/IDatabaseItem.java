@@ -2,10 +2,7 @@ package com.larp.database;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-<<<<<<< HEAD
 import com.larp.ai.TermAlias;
-=======
->>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 import com.larp.editor.InventoryItem;
 import com.larp.logviewer.LogEntry;
 import com.larp.shipping.ShippingRequest;
@@ -19,12 +16,8 @@ import java.time.LocalDate;
 @JsonSubTypes({
         @JsonSubTypes.Type(InventoryItem.class),
         @JsonSubTypes.Type(LogEntry.class),
-<<<<<<< HEAD
         @JsonSubTypes.Type(ShippingRequest.class),
         @JsonSubTypes.Type(TermAlias.class)
-=======
-        @JsonSubTypes.Type(ShippingRequest.class)
->>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 })
 public interface IDatabaseItem {
 

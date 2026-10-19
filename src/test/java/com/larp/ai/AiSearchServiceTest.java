@@ -1,32 +1,15 @@
 package com.larp.ai;
 
-<<<<<<< HEAD
 import com.larp.editor.InventoryStatus;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-=======
-import com.larp.database.DatabaseService;
-import com.larp.editor.InventoryItem;
-import com.larp.logviewer.LogService;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.cloud.stream.function.StreamBridge;
->>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-<<<<<<< HEAD
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-=======
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
->>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 
 class AiSearchServiceTest {
 
