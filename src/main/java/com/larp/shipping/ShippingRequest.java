@@ -95,6 +95,7 @@ public class ShippingRequest implements IDatabaseItem {
         this.requestedDate = requestedDate;
     }
 
+<<<<<<< HEAD
     public String getCourier() {
         return courier;
     }
@@ -103,6 +104,8 @@ public class ShippingRequest implements IDatabaseItem {
         this.courier = courier;
     }
 
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
     @Override
     public void updateFrom(IDatabaseItem incoming) {
         if (!(incoming instanceof ShippingRequest request)) {
@@ -123,8 +126,11 @@ public class ShippingRequest implements IDatabaseItem {
         if (request.getRequestedDate() != null) {
             setRequestedDate(request.getRequestedDate());
         }
+<<<<<<< HEAD
         if (request.getCourier() != null) {
             setCourier(request.getCourier());
         }
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
     }
 }

@@ -11,20 +11,30 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+<<<<<<< HEAD
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+=======
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+<<<<<<< HEAD
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+=======
+import java.util.List;
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 import java.util.Optional;
 
 @Service
@@ -78,6 +88,7 @@ public class ShippingService {
         request.setStatus(ShippingStatus.ARRIVED);
         ShippingRequest saved = ShippingRequest.class.cast(databaseService.createItem(request));
         logService.recordShippingConfirmation(request.getItemCode());
+<<<<<<< HEAD
         publishStockEvent("STOCK_ARRIVED", request.getItemCode(), request.getQuantity());
         return Optional.of(saved);
     }
@@ -164,14 +175,28 @@ public class ShippingService {
 
     private void publishStockEvent(String type, String itemCode, int quantityDelta) {
         StockEvent event = new StockEvent(type, itemCode, quantityDelta, Instant.now());
+=======
+        int quantityDelta = request.getQuantity();
+        StockEvent event = new StockEvent(
+                "STOCK_ARRIVED",
+                request.getItemCode(),
+                quantityDelta,
+                Instant.now());
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
         boolean published = streamBridge.send(
                 "stockEvents-out-0",
                 MessageBuilder.withPayload(event)
                         .setHeader(KafkaHeaders.KEY, event.itemId())
                         .build());
         if (!published) {
+<<<<<<< HEAD
             throw new IllegalStateException("Failed to publish stock event " + type);
         }
+=======
+            throw new IllegalStateException("Failed to publish stock arrival event");
+        }
+        return Optional.of(saved);
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
     }
 
     public List<ShippingRequest> getShippingRequests() {
@@ -192,6 +217,7 @@ public class ShippingService {
     public List<ShippingRequest> getShippingRequestsEndpoint() {
         return getShippingRequests();
     }
+<<<<<<< HEAD
 
     @PutMapping("/requests")
     public ShippingRequest createRequestEndpoint(@RequestBody ShippingRequest request) {
@@ -207,4 +233,6 @@ public class ShippingService {
     public ShippingRequest dispatchEndpoint(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return dispatch(id, body == null ? null : body.get("courier"));
     }
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 }

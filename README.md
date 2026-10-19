@@ -19,6 +19,16 @@ To run the application, run the following depending on your system:
 Windows:
 ```bash
 docker compose up -d
+<<<<<<< HEAD
+=======
+./mvnw spring-boot:run
+```
+
+Linux:
+Ensure docker has started with `sudo systemctl start docker`. Then run:
+```bash
+sudo docker compose up -d
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 ./mvnw spring-boot:run
 ```
 
@@ -67,10 +77,14 @@ Events are published after their corresponding existing operation succeeds:
 
 - `item-events` - editor item additions, updates, and removals; consumed by the Log Viewer
 - `ai-events` - AI searches; consumed by the Log Viewer
+<<<<<<< HEAD
 - `stock-events` - `STOCK_ARRIVED`, `STOCK_DISPATCHED` and `SHIPPING_REQUESTED`; consumed by the Log Viewer and by the
   AI agent's stock reviewer (consumer group `larp-agent`)
 - `agent-events` - every AI agent decision (chats, proposals, approvals, learned terms, stock reviews); consumed by
   the Log Viewer and logged with level `AGENT`
+=======
+- `stock-events` - shipping stock arrivals; consumed by the Log Viewer
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 
 The Log Viewer persists consumed events by calling `PUT /database/logs`; Kafka consumers do not write directly to H2. Stock event records are keyed by item code. The shipping endpoint updates inventory quantity synchronously before publishing its `STOCK_ARRIVED` audit event, so the stock change is immediately visible and does not depend on Kafka Streams processing.
 
@@ -86,6 +100,7 @@ The Log Viewer persists consumed events by calling `PUT /database/logs`; Kafka c
 | `GET` | `/editor/statuses` | Get inventory statuses used by the console |
 | `GET`, `PUT`, `DELETE` | `/log`, `/log/item`, `/log/shipping`, `/log/ai` | Read and write logs |
 | `GET` | `/log/stream` | Subscribe to log updates using Server-Sent Events |
+<<<<<<< HEAD
 | `PUT`, `GET` | `/shipping` | Confirm arrivals; list all shipping records |
 | `PUT` | `/shipping/requests` | A camp requests stock (status `PENDING`) |
 | `GET` | `/shipping/requests?status=` | Request queue, oldest first (default: everything not `ARRIVED`) |
@@ -96,12 +111,20 @@ The Log Viewer persists consumed events by calling `PUT /database/logs`; Kafka c
 | `GET` | `/ai/actions?sessionId=` | Changes the agent has proposed |
 | `POST` | `/ai/actions/{id}/approve`, `/ai/actions/{id}/reject` | Approve (runs it through the Editor/Shipping service) or reject a proposal |
 | `DELETE` | `/ai/sessions/{sessionId}` | Forget a conversation |
+=======
+| `PUT`, `GET` | `/shipping` | Confirm and list shipping arrivals |
+| `GET`, `PUT`, `POST` | `/ai` | List inventory or search it |
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 | `GET` | `/health` | Check service health |
 
 Inventory statuses are `AVAILABLE`, `SHIPPING`, and `ARRIVED`. The console loads
 these options from `/editor/statuses`; status strings in requests are accepted
+<<<<<<< HEAD
 case-insensitively. Shipping record statuses are `PENDING` (requested by a camp),
 `DISPATCHED` (sent with a courier) and `ARRIVED` (incoming stock received).
+=======
+case-insensitively. Shipping request statuses are `PENDING` and `ARRIVED`.
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 
 ### Examples
 
@@ -143,6 +166,7 @@ Read an item's records in a date range:
 ```http
 GET /database/ITEM-3001?start=2026-09-01&end=2026-09-30
 ```
+<<<<<<< HEAD
 
 Request stock for a camp, then dispatch it:
 
@@ -204,6 +228,8 @@ LLM decides which tools to call, chains them (up to 10 calls), and answers from 
 
 The agent's tests (`src/test/java/com/larp/ai`) use `ScriptedChatModel`, a fake LLM that plays back tool calls,
 so `./mvnw test` needs no API key or network.
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 
 ## Workflow overview
 
@@ -211,11 +237,17 @@ so `./mvnw test` needs no API key or network.
 1. Seed data by sending an empty body to `PUT /editor/prepopulate`, or bulk load records via the same endpoint.
 2. Query inventory using `GET /database/{filter}` or the AI endpoint `PUT /ai`.
 3. Update or validate inventory through `PUT /editor`.
+<<<<<<< HEAD
 4. Confirm stock arrival with `PUT /shipping`; camps request stock with `PUT /shipping/requests`, and requests are
    sent with `POST /shipping/requests/{id}/dispatch`.
 5. Ask the AI agent questions at `POST /ai/chat` (or in the console) and approve its proposals.
 6. Inspect event history using `GET /log` and date-range filtering.
 7. Review service status with `GET /health` and the root status endpoint `GET /`.
+=======
+4. Confirm stock arrival with `PUT /shipping`.
+5. Inspect event history using `GET /log` and date-range filtering.
+6. Review service status with `GET /health` and the root status endpoint `GET /`.
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 
 ## Notes
 

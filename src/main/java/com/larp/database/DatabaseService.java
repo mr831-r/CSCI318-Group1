@@ -136,6 +136,7 @@ public class DatabaseService {
         return Optional.of(databaseItem);
     }
 
+<<<<<<< HEAD
     /** Locks and updates one item by id (for records such as shipping requests that share an item code). */
     @Transactional
     public Optional<IDatabaseItem> mutateItem(String filterName, Long id, Consumer<IDatabaseItem> update) {
@@ -156,6 +157,8 @@ public class DatabaseService {
         return Optional.of(databaseItem);
     }
 
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
     @Transactional
     public boolean deleteItem(IDatabaseItem item) {
         if (item == null || item.getId() == null) {

@@ -1,6 +1,9 @@
 package com.larp.logviewer;
 
+<<<<<<< HEAD
 import com.larp.ai.AgentEvent;
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 import com.larp.ai.AiEvent;
 import com.larp.database.DatabaseService;
 import com.larp.editor.InventoryItem;
@@ -99,12 +102,15 @@ public class LogService {
         return persistEventLog("AI query: " + event.query(), "INFO", event.occurredAt());
     }
 
+<<<<<<< HEAD
     public LogEntry addLogItem(AgentEvent event) {
         String message = "AI agent " + event.type() + " [" + event.sessionId() + "]: " + event.detail();
         return persistEventLog(message.length() > LogEntry.MESSAGE_LENGTH
                 ? message.substring(0, LogEntry.MESSAGE_LENGTH - 3) + "..." : message, "AGENT", event.occurredAt());
     }
 
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
     @Bean
     public Consumer<ItemEvent> logItemEvents() {
         return this::addLogItem;
@@ -120,11 +126,14 @@ public class LogService {
         return this::addLogItem;
     }
 
+<<<<<<< HEAD
     @Bean
     public Consumer<AgentEvent> logAgentEvents() {
         return this::addLogItem;
     }
 
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
     private LogEntry saveLog(String message, String level) {
         LogEntry logEntry = new LogEntry();
         logEntry.setMessage(message);

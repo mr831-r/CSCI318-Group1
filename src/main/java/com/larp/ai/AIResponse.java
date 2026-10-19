@@ -11,9 +11,16 @@ public class AIResponse {
     private LocalDate endDate;
     private int count;
     private String summary;
+<<<<<<< HEAD
     /** The words actually searched: the query's words plus meanings of any learned terms. */
     private List<String> searchTerms;
     private List<InventoryItem> results;
+=======
+    private List<InventoryItem> results;
+    private boolean llmConfigured;
+    private String model;
+    private String providerUrl;
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 
     public AIResponse() {}
 
@@ -57,6 +64,7 @@ public class AIResponse {
         this.summary = summary;
     }
 
+<<<<<<< HEAD
     public List<String> getSearchTerms() {
         return searchTerms;
     }
@@ -65,6 +73,8 @@ public class AIResponse {
         this.searchTerms = searchTerms;
     }
 
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
     public List<InventoryItem> getResults() {
         return results;
     }
@@ -72,4 +82,32 @@ public class AIResponse {
     public void setResults(List<InventoryItem> results) {
         this.results = results;
     }
+<<<<<<< HEAD
 }
+=======
+
+    public boolean isLlmConfigured() {
+        return llmConfigured;
+    }
+
+    public void setLlmConfigured(boolean llmConfigured) {
+        this.llmConfigured = llmConfigured;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    public String getProviderUrl() {
+        return providerUrl;
+    }
+
+    public void setProviderUrl(String providerUrl) {
+        this.providerUrl = providerUrl;
+    }
+}
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7

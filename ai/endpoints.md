@@ -46,6 +46,7 @@ Read the following API Endpoint table written in markdown. Go through the entire
 | A1 | GET | `/ai` | None |
 | A2 | PUT | `/ai` | `AIRequest` JSON |
 | A3 | POST | `/ai` | `AIRequest` JSON |
+<<<<<<< HEAD
 | S3 | PUT | `/shipping/requests` | `ShippingRequest` JSON (`itemCode`, `destination`, `quantity`, optional `requestedDate`) |
 | S4 | GET | `/shipping/requests?status={status}` | None; status optional (`PENDING`, `DISPATCHED`, `ARRIVED`) |
 | S5 | POST | `/shipping/requests/{id}/dispatch` | `{"courier":"..."}` |
@@ -55,6 +56,8 @@ Read the following API Endpoint table written in markdown. Go through the entire
 | A7 | POST | `/ai/actions/{id}/approve` | None |
 | A8 | POST | `/ai/actions/{id}/reject` | None |
 | A9 | DELETE | `/ai/sessions/{sessionId}` | None |
+=======
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 | H1 | GET | `/health` | None |
 | H2 | GET | `/` or `/console` | None; serves the console page |
 
@@ -111,6 +114,7 @@ and returned in uppercase; incoming enum strings are accepted case-insensitively
 | `LogService` | L4 | `GET /log/stream` | Stream new log entries as Server-Sent Events |
 | `ShippingService` | S1 | `PUT /shipping` with item code and received quantity | Increase inventory quantity immediately, set inventory status to `ARRIVED`, persist the shipping request, publish `STOCK_ARRIVED` |
 | `ShippingService` | S2 | `GET /shipping` | Return persisted shipping requests |
+<<<<<<< HEAD
 | `ShippingService` | S3 | `PUT /shipping/requests` | Save a `PENDING` request; publish `SHIPPING_REQUESTED` |
 | `ShippingService` | S4 | `GET /shipping/requests` | Return the request queue, oldest first |
 | `ShippingService` | S5 | `POST /shipping/requests/{id}/dispatch` | Take stock, assign courier, mark `DISPATCHED`; publish `STOCK_DISPATCHED` (409 if not enough stock) |
@@ -120,6 +124,10 @@ and returned in uppercase; incoming enum strings are accepted case-insensitively
 | `LogService` | K5 | `agent-events` | Log every AI agent decision with level `AGENT` |
 | `AiSearchService` | A1 | `GET /ai` | Return available inventory items |
 | `AiSearchService` | A2 | `PUT /ai` or `POST /ai` with an `AIRequest` | Keyword search using learned terminology, publish an AI event, and return matching items |
+=======
+| `AiSearchService` | A1 | `GET /ai` | Return available inventory items |
+| `AiSearchService` | A2 | `PUT /ai` or `POST /ai` with an `AIRequest` | Search inventory, publish an AI event, and return matching items |
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
 | `LogService` | K1 | `item-events` | Consume inventory add/update/remove events and write audit entries |
 | `LogService` | K2 | `ai-events` | Consume AI search events and write audit entries |
 | `LogService` | K3 | `stock-events` | Consume stock arrival events and write audit entries |

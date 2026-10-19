@@ -1,7 +1,11 @@
 spring:
   cloud:
     function:
+<<<<<<< HEAD
       definition: logItemEvents;logAiEvents;logStockEvents;logAgentEvents;agentStockEvents
+=======
+      definition: logItemEvents;logAiEvents;logStockEvents
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
     stream:
       bindings:
         itemEvents-out-0:
@@ -19,6 +23,7 @@ spring:
         logStockEvents-in-0:
           destination: stock-events
           group: log-viewer
+<<<<<<< HEAD
         # AI agent audit trail (AgentEventPublisher -> LogService)
         agentEvents-out-0:
           destination: agent-events
@@ -50,3 +55,11 @@ larp:
     max-tool-calls: 10                         # tool calls the model may chain for one message
     memory-messages: 20                        # messages remembered per conversation
     autonomous-review: true                    # let the LLM review each stock event (rule-based check always runs)
+=======
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+larp:
+  database:
+    base-url: ${DATABASE_SERVICE_URL:http://localhost:48484}
+>>>>>>> 3aee914b11d4fe54347f4e181b6413330c75b1b7
