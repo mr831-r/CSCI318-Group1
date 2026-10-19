@@ -1,13 +1,13 @@
 package com.larp.shipping;
 
-import com.larp.database.DatabaseItem;
+import com.larp.database.IDatabaseItem;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "shipping_requests")
-public class ShippingRequest implements DatabaseItem {
+public class ShippingRequest implements IDatabaseItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,11 +22,16 @@ public class ShippingRequest implements DatabaseItem {
     @Column(nullable = false)
     private Integer quantity;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private ShippingStatus status;
 
     @Column(nullable = false)
     private LocalDate requestedDate;
+
+    /** Courier assigned when the request is dispatched. */
+    @Column
+    private String courier;
 
     public ShippingRequest() {
     }
@@ -49,6 +54,11 @@ public class ShippingRequest implements DatabaseItem {
         return itemCode;
     }
 
+    @Override
+    public LocalDate getDate() {
+        return requestedDate;
+    }
+
     public void setItemCode(String itemCode) {
         this.itemCode = itemCode;
     }
@@ -69,11 +79,11 @@ public class ShippingRequest implements DatabaseItem {
         this.quantity = quantity;
     }
 
-    public String getStatus() {
+    public ShippingStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(ShippingStatus status) {
         this.status = status;
     }
 
@@ -83,5 +93,38 @@ public class ShippingRequest implements DatabaseItem {
 
     public void setRequestedDate(LocalDate requestedDate) {
         this.requestedDate = requestedDate;
+    }
+
+    public String getCourier() {
+        return courier;
+    }
+
+    public void setCourier(String courier) {
+        this.courier = courier;
+    }
+
+    @Override
+    public void updateFrom(IDatabaseItem incoming) {
+        if (!(incoming instanceof ShippingRequest request)) {
+            throw new IllegalArgumentException("Shipping requests can only be updated from shipping requests");
+        }
+        if (request.getItemCode() != null) {
+            setItemCode(request.getItemCode());
+        }
+        if (request.getDestination() != null) {
+            setDestination(request.getDestination());
+        }
+        if (request.getQuantity() != null) {
+            setQuantity(request.getQuantity());
+        }
+        if (request.getStatus() != null) {
+            setStatus(request.getStatus());
+        }
+        if (request.getRequestedDate() != null) {
+            setRequestedDate(request.getRequestedDate());
+        }
+        if (request.getCourier() != null) {
+            setCourier(request.getCourier());
+        }
     }
 }

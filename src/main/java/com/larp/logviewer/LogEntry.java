@@ -1,19 +1,21 @@
 package com.larp.logviewer;
 
-import com.larp.database.DatabaseItem;
+import com.larp.database.IDatabaseItem;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "log_entries")
-public class LogEntry implements DatabaseItem {
+public class LogEntry implements IDatabaseItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    public static final int MESSAGE_LENGTH = 1000;
+
+    @Column(nullable = false, length = MESSAGE_LENGTH)
     private String message;
 
     @Column(nullable = false)
@@ -58,7 +60,28 @@ public class LogEntry implements DatabaseItem {
         return timestamp;
     }
 
+    @Override
+    public java.time.LocalDate getDate() {
+        return timestamp == null ? null : timestamp.toLocalDate();
+    }
+
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
+    }
+
+    @Override
+    public void updateFrom(IDatabaseItem incoming) {
+        if (!(incoming instanceof LogEntry entry)) {
+            throw new IllegalArgumentException("Log entries can only be updated from log entries");
+        }
+        if (entry.getMessage() != null) {
+            setMessage(entry.getMessage());
+        }
+        if (entry.getLevel() != null) {
+            setLevel(entry.getLevel());
+        }
+        if (entry.getTimestamp() != null) {
+            setTimestamp(entry.getTimestamp());
+        }
     }
 }

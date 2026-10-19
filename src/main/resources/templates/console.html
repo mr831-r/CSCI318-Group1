@@ -97,7 +97,7 @@
             color: var(--muted);
         }
 
-        input, button, textarea {
+        input, button, textarea, select {
             width: 100%;
             margin-top: 6px;
             border-radius: 10px;
@@ -163,6 +163,63 @@
             color: #d1fae5;
             font-size: 0.82rem;
         }
+
+        .panel.wide {
+            grid-column: 1 / -1;
+        }
+
+        .agent-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+            gap: 18px;
+        }
+
+        @media (max-width: 860px) {
+            .agent-layout { grid-template-columns: 1fr; }
+        }
+
+        .chat {
+            height: 340px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(2, 8, 23, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+        }
+
+        .msg {
+            padding: 10px 12px;
+            border-radius: 10px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-size: 0.92rem;
+        }
+
+        .msg.user { background: rgba(96, 165, 250, 0.18); align-self: flex-end; max-width: 85%; }
+        .msg.agent { background: var(--panel-strong); align-self: flex-start; max-width: 95%; }
+        .msg.error { background: rgba(248, 113, 113, 0.15); color: #fecaca; }
+
+        .msg details { margin-top: 6px; font-size: 0.8rem; color: var(--muted); }
+        .msg details pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+
+        .action-card {
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            font-size: 0.88rem;
+        }
+
+        .action-card .meta { color: var(--muted); margin-top: 4px; }
+        .badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: rgba(148, 163, 184, 0.2); }
+        .badge.PENDING { background: rgba(245, 158, 11, 0.25); color: #fde68a; }
+        .badge.APPROVED { background: rgba(34, 197, 94, 0.25); color: #bbf7d0; }
+        .badge.REJECTED, .badge.FAILED { background: rgba(248, 113, 113, 0.25); color: #fecaca; }
+        .muted { color: var(--muted); font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -170,7 +227,7 @@
     <div class="topbar">
         <div>
             <h1>LARP Service Console</h1>
-            <div class="subtitle">Test the database, editor, AI, shipping, and log features from one page.</div>
+            <div class="subtitle">Test the database, editor, AI agent, shipping, and log features from one page.</div>
         </div>
         <div class="actions">
             <a class="link-btn" href="/health">Health</a>
@@ -179,8 +236,34 @@
     </div>
 
     <div class="grid">
+        <section class="panel wide">
+            <h2>AI Agent <span class="muted" id="agentStatus" style="font-weight:400"></span></h2>
+            <div class="agent-layout">
+                <div>
+                    <div class="chat" id="agentChat" aria-live="polite">
+                        <div class="muted">Ask about stock, history or shipping, e.g. "Which items are running low?",
+                            "Do we have any blades?" or "Which pending requests can we send now?"</div>
+                    </div>
+                    <label>
+                        Message <span class="muted" id="agentSession"></span>
+                        <textarea id="agentMessage" style="min-height:60px" placeholder="Ask the agent..."></textarea>
+                    </label>
+                    <div class="inline-actions">
+                        <button class="primary" id="agentSend" onclick="sendAgentMessage()">Send</button>
+                        <button class="secondary" onclick="newAgentSession()">New conversation</button>
+                    </div>
+                </div>
+                <div>
+                    <div style="font-weight:700;margin-bottom:6px">Proposed actions</div>
+                    <div class="muted" style="margin-bottom:10px">The agent cannot change stock itself. Nothing happens
+                        until you approve. Includes proposals from the automatic stock reviewer.</div>
+                    <div id="agentActions"><div class="muted">No proposals yet.</div></div>
+                </div>
+            </div>
+        </section>
+
         <section class="panel">
-            <h2>AI Assistant</h2>
+            <h2>AI Search</h2>
             <label>
                 Start date
                 <input id="aiStartDate" type="date" value="2026-09-01" />
@@ -193,20 +276,9 @@
                 AI query
                 <input id="aiQuery" type="text" value="iron sword" placeholder="Search inventory or status" />
             </label>
-            <label>
-                API key
-                <input id="aiApiKey" type="password" placeholder="Optional: your provider key" />
-            </label>
-            <label>
-                Model
-                <input id="aiModel" type="text" value="gemini-2.0-flash" placeholder="Optional model name" />
-            </label>
-            <label>
-                Provider URL
-                <input id="aiProviderUrl" type="url" value="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" placeholder="Optional Gemini-compatible endpoint" />
-            </label>
+            <div class="muted" style="margin-top:10px">Keyword search that also uses terms the AI agent has learned.</div>
             <div class="inline-actions">
-                <button class="primary" onclick="callAi()">Ask AI</button>
+                <button class="primary" onclick="callAi()">Search</button>
                 <button class="secondary" onclick="getAllItemsForAi()">List inventory</button>
             </div>
             <div class="result" id="aiResult">No AI request yet.</div>
@@ -219,8 +291,12 @@
                 <input id="editorItemCode" type="text" value="ITEM-3001" />
             </label>
             <label>
+                Name
+                <input id="editorName" type="text" value="Steel spear" />
+            </label>
+            <label>
                 Description
-                <input id="editorDescription" type="text" value="Steel spear" />
+                <input id="editorDescription" type="text" value="Steel spear details" />
             </label>
             <label>
                 Quantity
@@ -228,7 +304,9 @@
             </label>
             <label>
                 Status
-                <input id="editorStatus" type="text" value="available" placeholder="available or shipping" />
+                <select id="editorStatus">
+                    <option value="">Loading statuses...</option>
+                </select>
             </label>
             <label>
                 Date
@@ -239,7 +317,7 @@
                 <button class="secondary" onclick="getEditorItems()">List items</button>
             </div>
             <div class="inline-actions">
-                <button class="warn" onclick="seedEditorItems()">Load demo data</button>
+                <button class="warn" onclick="prepopulateEditor()">Load demo data</button>
             </div>
             <div class="result" id="editorResult">No editor action yet.</div>
         </section>
@@ -259,10 +337,6 @@
                 <input id="shippingQuantity" type="number" value="3" />
             </label>
             <label>
-                Arrival status
-                <input id="shippingStatus" type="text" value="ARRIVED" />
-            </label>
-            <label>
                 Arrival date
                 <input id="shippingDate" type="date" value="2026-09-09" />
             </label>
@@ -271,6 +345,38 @@
                 <button class="secondary" onclick="listShippingRequests()">List arrivals</button>
             </div>
             <div class="result" id="shippingResult">No arrival confirmation yet.</div>
+        </section>
+
+        <section class="panel">
+            <h2>Shipping Requests</h2>
+            <label>
+                Item code
+                <input id="requestItemCode" type="text" value="ITEM-1002" />
+            </label>
+            <label>
+                Destination camp
+                <input id="requestDestination" type="text" value="South Camp" />
+            </label>
+            <label>
+                Quantity requested
+                <input id="requestQuantity" type="number" value="5" />
+            </label>
+            <div class="inline-actions">
+                <button class="primary" onclick="createShippingRequest()">Request stock</button>
+                <button class="secondary" onclick="listRequestQueue()">Request queue</button>
+            </div>
+            <label>
+                Dispatch request id
+                <input id="dispatchId" type="number" placeholder="Id from the queue" />
+            </label>
+            <label>
+                Courier
+                <input id="dispatchCourier" type="text" value="Fast Horse Couriers" />
+            </label>
+            <div class="inline-actions">
+                <button class="warn" onclick="dispatchRequest()">Dispatch</button>
+            </div>
+            <div class="result" id="requestResult">No shipping request yet.</div>
         </section>
 
         <section class="panel">
@@ -303,10 +409,7 @@
         const payload = {
             query: document.getElementById('aiQuery').value,
             startDate: document.getElementById('aiStartDate').value || null,
-            endDate: document.getElementById('aiEndDate').value || null,
-            apiKey: document.getElementById('aiApiKey').value || null,
-            model: document.getElementById('aiModel').value || null,
-            providerUrl: document.getElementById('aiProviderUrl').value || null
+            endDate: document.getElementById('aiEndDate').value || null
         };
         const res = await fetch(`${baseUrl}/ai`, {
             method: 'POST',
@@ -323,9 +426,190 @@
         document.getElementById('aiResult').textContent = JSON.stringify(data, null, 2);
     }
 
+    // ---------------------------------------------------------------- AI agent
+    let agentSession = null;
+    try { agentSession = sessionStorage.getItem('larpAgentSession'); } catch (e) { /* storage unavailable */ }
+
+    function setAgentSession(id) {
+        agentSession = id;
+        try { if (id) sessionStorage.setItem('larpAgentSession', id); else sessionStorage.removeItem('larpAgentSession'); } catch (e) {}
+        document.getElementById('agentSession').textContent = id ? '(session ' + id + ')' : '';
+    }
+
+    function addAgentMessage(kind, text, steps) {
+        const chat = document.getElementById('agentChat');
+        const div = document.createElement('div');
+        div.className = 'msg ' + kind;
+        div.textContent = text;
+        if (steps && steps.length) {
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.textContent = steps.length + ' tool call(s): ' + steps.map(s => s.tool).join(' → ');
+            details.appendChild(summary);
+            steps.forEach(step => {
+                const pre = document.createElement('pre');
+                pre.textContent = step.tool + '(' + step.arguments + ')\n→ ' + step.result;
+                details.appendChild(pre);
+            });
+            div.appendChild(details);
+        }
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendAgentMessage() {
+        const input = document.getElementById('agentMessage');
+        const button = document.getElementById('agentSend');
+        const message = input.value.trim();
+        if (!message) return;
+        addAgentMessage('user', message);
+        input.value = '';
+        button.disabled = true;
+        button.textContent = 'Thinking…';
+        try {
+            const res = await fetch(`${baseUrl}/ai/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: agentSession, message })
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                addAgentMessage('agent error', data.message || ('Request failed: ' + res.status));
+            } else {
+                setAgentSession(data.sessionId);
+                addAgentMessage(data.configured ? 'agent' : 'agent error', data.reply, data.steps);
+            }
+        } catch (e) {
+            addAgentMessage('agent error', 'Could not reach the agent: ' + e.message);
+        } finally {
+            button.disabled = false;
+            button.textContent = 'Send';
+            loadAgentActions();
+        }
+    }
+
+    async function newAgentSession() {
+        if (agentSession) await fetch(`${baseUrl}/ai/sessions/${agentSession}`, { method: 'DELETE' }).catch(() => {});
+        setAgentSession(null);
+        document.getElementById('agentChat').replaceChildren();
+    }
+
+    async function loadAgentStatus() {
+        try {
+            const status = await (await fetch(`${baseUrl}/ai/status`)).json();
+            document.getElementById('agentStatus').textContent = status.configured
+                ? '· ' + status.provider : '· no API key configured (set AI_API_KEY)';
+        } catch (e) {
+            document.getElementById('agentStatus').textContent = '· unreachable';
+        }
+    }
+
+    async function loadAgentActions() {
+        const container = document.getElementById('agentActions');
+        try {
+            const actions = await (await fetch(`${baseUrl}/ai/actions`)).json();
+            if (!actions.length) {
+                container.innerHTML = '<div class="muted">No proposals yet.</div>';
+                return;
+            }
+            container.replaceChildren(...actions.slice(0, 15).map(action => {
+                const card = document.createElement('div');
+                card.className = 'action-card';
+                const title = document.createElement('div');
+                const strong = document.createElement('strong');
+                strong.textContent = action.type.replaceAll('_', ' ').toLowerCase() + ' · ' + action.itemCode + ' ';
+                const badge = document.createElement('span');
+                badge.className = 'badge ' + action.state;
+                badge.textContent = action.state;
+                title.append(strong, badge);
+                const meta = document.createElement('div');
+                meta.className = 'meta';
+                meta.textContent = [
+                    action.quantity != null ? 'Qty ' + action.quantity : null,
+                    action.status ? 'Status ' + action.status : null,
+                    action.destination ? 'To/at ' + action.destination : null,
+                    action.courier ? 'Courier ' + action.courier : null,
+                    action.reason,
+                    action.outcome ? '→ ' + action.outcome : null,
+                    'id ' + action.id + ' · ' + action.sessionId
+                ].filter(Boolean).join(' · ');
+                card.append(title, meta);
+                if (action.state === 'PENDING') {
+                    const row = document.createElement('div');
+                    row.className = 'inline-actions';
+                    const approve = document.createElement('button');
+                    approve.className = 'primary';
+                    approve.textContent = 'Approve';
+                    approve.onclick = () => resolveAgentAction(action.id, 'approve');
+                    const reject = document.createElement('button');
+                    reject.className = 'warn';
+                    reject.textContent = 'Reject';
+                    reject.onclick = () => resolveAgentAction(action.id, 'reject');
+                    row.append(approve, reject);
+                    card.appendChild(row);
+                }
+                return card;
+            }));
+        } catch (e) {
+            container.textContent = 'Could not load proposals.';
+        }
+    }
+
+    async function resolveAgentAction(id, verb) {
+        const res = await fetch(`${baseUrl}/ai/actions/${id}/${verb}`, { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        addAgentMessage(res.ok && data.state !== 'FAILED' ? 'agent' : 'agent error', res.ok
+            ? 'Action ' + id + ' ' + data.state.toLowerCase() + (data.outcome ? ': ' + data.outcome : '')
+            : (data.message || 'Could not ' + verb + ' action ' + id));
+        loadAgentActions();
+    }
+
+    document.getElementById('agentMessage').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendAgentMessage();
+        }
+    });
+
+    // ---------------------------------------------------------------- shipping requests
+    async function showResponse(elementId, res) {
+        const data = await res.json().catch(() => ({}));
+        document.getElementById(elementId).textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function createShippingRequest() {
+        const payload = {
+            itemCode: document.getElementById('requestItemCode').value,
+            destination: document.getElementById('requestDestination').value,
+            quantity: Number(document.getElementById('requestQuantity').value)
+        };
+        const res = await fetch(`${baseUrl}/shipping/requests`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        await showResponse('requestResult', res);
+        setTimeout(loadAgentActions, 4000); // the stock reviewer may propose a dispatch
+    }
+
+    async function listRequestQueue() {
+        await showResponse('requestResult', await fetch(`${baseUrl}/shipping/requests`));
+    }
+
+    async function dispatchRequest() {
+        const id = document.getElementById('dispatchId').value;
+        const res = await fetch(`${baseUrl}/shipping/requests/${id}/dispatch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ courier: document.getElementById('dispatchCourier').value })
+        });
+        await showResponse('requestResult', res);
+    }
+
     async function saveEditorItem() {
         const payload = {
             itemCode: document.getElementById('editorItemCode').value,
+            name: document.getElementById('editorName').value,
             description: document.getElementById('editorDescription').value,
             quantity: Number(document.getElementById('editorQuantity').value),
             status: document.getElementById('editorStatus').value,
@@ -349,12 +633,6 @@
         document.getElementById('editorResult').textContent = JSON.stringify(data, null, 2);
     }
 
-    async function seedEditorItems() {
-        const res = await fetch(`${baseUrl}/editor/seed`, { method: 'POST' });
-        const data = await res.json();
-        document.getElementById('editorResult').textContent = JSON.stringify(data, null, 2);
-    }
-
     async function prepopulateEditor() {
         const res = await fetch(`${baseUrl}/editor/prepopulate`, {
             method: 'PUT',
@@ -370,7 +648,6 @@
             itemCode: document.getElementById('shippingItemCode').value,
             destination: document.getElementById('shippingDestination').value,
             quantity: Number(document.getElementById('shippingQuantity').value),
-            status: document.getElementById('shippingStatus').value || 'ARRIVED',
             requestedDate: document.getElementById('shippingDate').value
         };
 
@@ -409,7 +686,50 @@
         document.getElementById('logResult').textContent = JSON.stringify(data, null, 2);
     }
 
+    async function loadInventoryStatuses() {
+        const response = await fetch(`${baseUrl}/editor/statuses`);
+        if (!response.ok) {
+            throw new Error(`Unable to load inventory statuses (${response.status})`);
+        }
+        const statuses = await response.json();
+        const select = document.getElementById('editorStatus');
+        select.replaceChildren(...statuses.map(status => new Option(status, status)));
+        select.value = 'AVAILABLE';
+    }
+
+    loadInventoryStatuses().catch(error => {
+        console.error(error);
+        document.getElementById('editorResult').textContent = error.message;
+    });
+
+    // Start Server-Sent Events connection to receive real-time log updates
+    try {
+        const es = new EventSource(`${baseUrl}/log/stream`);
+        es.addEventListener('log', (e) => {
+            try {
+                const entry = JSON.parse(e.data);
+                const el = document.getElementById('logResult');
+                const now = new Date(entry.timestamp).toLocaleString();
+                const line = `[${now}] ${entry.level}: ${entry.message}`;
+                // prepend
+                el.textContent = line + "\n" + el.textContent;
+            } catch (err) {
+                console.warn('Failed to parse SSE log event', err);
+            }
+        });
+        es.onerror = (err) => {
+            console.warn('SSE connection error', err);
+            // the browser will attempt to reconnect automatically
+        };
+    } catch (err) {
+        console.warn('SSE not supported by this browser', err);
+    }
+
     loadLogs();
+    setAgentSession(agentSession);
+    loadAgentStatus();
+    loadAgentActions();
+    setInterval(loadAgentActions, 10000);
 </script>
 </body>
 </html>

@@ -1,2 +1,7 @@
-/home/micah/Desktop/Uni Slop/CSCI318-Group1/src/test/java/com/larp/ai/AiSearchServiceTest.java
-/home/micah/Desktop/Uni Slop/CSCI318-Group1/src/test/java/com/larp/editor/EditorServiceTest.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/test/java/com/larp/ai/AiSearchServiceTest.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/test/java/com/larp/database/DatabaseServiceEndpointTest.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/test/java/com/larp/database/DatabaseServiceTest.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/test/java/com/larp/database/IDatabaseItemTest.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/test/java/com/larp/editor/EditorServiceTest.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/test/java/com/larp/logviewer/LogServiceTest.java
+/home/micah/Desktop/codingbfcaui/CSCI318-Group1/src/test/java/com/larp/shipping/ShippingServiceTest.java
